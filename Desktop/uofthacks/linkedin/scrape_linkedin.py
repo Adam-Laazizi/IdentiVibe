@@ -31,6 +31,8 @@ def _read_urls(args):
 def _normalize_profile_input(value):
     if value.startswith("http://") or value.startswith("https://"):
         return value
+    if " " in value:
+        return value
     return f"https://www.linkedin.com/in/{value}"
 
 
@@ -40,17 +42,22 @@ def _run_actor(client, actor_id, run_input):
     return list(dataset.iterate_items())
 
 
-def git_payload(profile_or_username):
-    urls = [_normalize_profile_input(profile_or_username)]
-    return _run_for_urls(urls)
+class LinkedInScraper:
+    def __init__(self, api_key, profile_or_username):
+        self.api_key = api_key
+        self.profile_or_username = profile_or_username
+
+    def git_payload(self):
+        urls = [_normalize_profile_input(self.profile_or_username)]
+        return _run_for_urls(urls, api_key=self.api_key)
 
 
-def _run_for_urls(urls):
+def _run_for_urls(urls, api_key=None):
     if not urls:
         print("[FATAL] Provide at least one LinkedIn profile URL or a .txt file.")
         sys.exit(1)
 
-    token = os.getenv("APIFY_TOKEN")
+    token = api_key or os.getenv("APIFY_TOKEN")
     if not token:
         print("[FATAL] Missing APIFY_TOKEN in environment or .env.")
         sys.exit(1)
