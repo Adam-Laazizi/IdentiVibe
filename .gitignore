@@ -11,3 +11,4 @@ instagram_bundles.json
 __pycache__/
 *.pyc
 *.pyo
+output.json
