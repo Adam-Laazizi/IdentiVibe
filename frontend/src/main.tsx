@@ -3,28 +3,29 @@ import { createRoot } from 'react-dom/client';
 import { Home } from './routes/Home';
 import { Sources } from './routes/Sources';
 import { Results } from './routes/Results';
+import History from './routes/History';
 import type { ResolveSourcesResponse } from './types/sources';
 import './index.css';
 
-type Route = 'home' | 'sources' | 'results';
+type Route = 'home' | 'sources' | 'results' | 'history';
 
 function useRouter() {
   const [route, setRoute] = useState<Route>('home');
   const [state, setState] = useState<ResolveSourcesResponse | null>(null);
 
   useEffect(() => {
-  const handleRoute = () => {
-    const hash = window.location.hash.slice(1);
-    if (hash === '/sources') setRoute('sources');
-    else if (hash === '/results') setRoute('results');
-    else setRoute('home');
-  };
+    const handleRoute = () => {
+      const hash = window.location.hash.slice(1);
+      if (hash === '/sources') setRoute('sources');
+      else if (hash === '/results') setRoute('results');
+      else if (hash === '/history') setRoute('history');
+      else setRoute('home');
+    };
 
-  handleRoute();
-  window.addEventListener('hashchange', handleRoute);
-  return () => window.removeEventListener('hashchange', handleRoute);
-}, []);
-
+    handleRoute();
+    window.addEventListener('hashchange', handleRoute);
+    return () => window.removeEventListener('hashchange', handleRoute);
+  }, []);
 
   const navigate = (path: string, newState?: ResolveSourcesResponse) => {
     window.location.hash = path;
@@ -45,6 +46,10 @@ function App() {
 
   if (route === 'results') {
     return <Results initialState={state} navigate={navigate} />;
+  }
+
+  if (route === 'history') {
+    return <History navigate={navigate} />;
   }
 
   return <Home navigate={navigate} />;

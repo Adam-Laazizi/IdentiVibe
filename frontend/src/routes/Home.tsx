@@ -75,6 +75,16 @@ export function Home({ navigate }: HomeProps) {
               <p className="text-red-800 text-sm">{error}</p>
             </div>
           )}
+
+          <div className="flex justify-center">
+            <button
+              onClick={() => navigate('/history')}
+              className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              View history
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
