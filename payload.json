@@ -1,8 +1,0 @@
-{
-  "posts": 10,
-  "comments": 150,
-  "sample": 250,
-  "user_posts": 10,
-  "max_comments_per_user": 50,
-  "cache_dir": "./cache"
-}
