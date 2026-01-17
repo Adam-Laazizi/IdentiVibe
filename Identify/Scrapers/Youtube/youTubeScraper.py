@@ -1,11 +1,20 @@
-import os
 import json
 from typing import List, Dict, Any
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
+import sys
+import os
 
-# Ensure the import path matches your project structure
-from Identify.Scrapers.SocialScraper import SocialScraper
+# 1. Get the path of the 'Scrapers' folder (which is the parent of the current file)
+# This handles the case where you are in root/Identify/Scrapers/Youtube/
+scrapers_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 2. Add 'Scrapers' to the system path so Python can find SocialScraper.py
+if scrapers_dir not in sys.path:
+    sys.path.insert(0, scrapers_dir)
+
+# 3. Import with the CORRECT CASE (Capital S)
+from socialScraper import SocialScraper
 
 load_dotenv()
 
