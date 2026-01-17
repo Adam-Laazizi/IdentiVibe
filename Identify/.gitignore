@@ -1,0 +1,22 @@
+# 1. Security (Crucial)
+.env
+
+# 2. Python Caches (Prevents __pycache__ folders from appearing)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 3. Virtual Environments (Prevents pushing your local libraries)
+venv/
+env/
+.venv/
+
+# 4. Local Data Exports (Prevents pushing huge JSON/PNG files)
+*.json
+*.png
+*.csv
+!sample_payload.json  # (Optional: keep a sample file for others to see)
+
+# 5. IDE Settings (Keep your VS Code/PyCharm configs local)
+.vscode/
+.idea/
