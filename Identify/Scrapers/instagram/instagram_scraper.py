@@ -11,11 +11,16 @@ Usage:
 
 import json
 import logging
-import os
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
-from Identify.Scrapers.SocialScraper import SocialScraper
+try:
+    from Identify.Scrapers.SocialScraper import SocialScraper
+except ImportError:
+    # Allow running standalone from the instagram directory
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from SocialScraper import SocialScraper
 from connectors.instagram.apify_client import ApifyClient, ApifyError
 from connectors.instagram.bundler import (
     bundle_seed_comments,
@@ -141,8 +146,6 @@ class InstagramScraper(SocialScraper):
 
 
 if __name__ == "__main__":
-    import sys
-
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s | %(levelname)-8s | %(message)s",
