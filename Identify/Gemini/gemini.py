@@ -27,13 +27,17 @@ class GeminiEnricher:
 
     def get_system_prompt(self):
         return """
-        Role: You are a Senior Data Scientist and Psychographic Profiler specializing in community intelligence for 'Identivibe'.
+        Role: You are a Senior Data Scientist and Psychographic Profiler 
+        specializing in community intelligence for 'Identivibe'.
 
-        Task: Analyze the provided 'Identity Payload'. Generate a report including individual dossiers and a global community identity.
+        Task: Analyze the provided 'Identity Payload'. Generate a report 
+        including individual dossiers and a global community identity.
 
         Constraints:
         1. Output Format: Return a valid JSON object. No conversational text.
-        2. Schema:
+        2. The "chibi_mascot_prompt" must always end in "On a solid, pure white 
+        background #FFFFFF" to ensure the background is pure white
+        3. Schema:
         {
           "community_report": {
             "overall_archetype": "string",
@@ -74,12 +78,14 @@ class GeminiEnricher:
         users_to_process = raw_payload.get('users', [])
 
         print(
-            f"Identivibe Intelligence: Processing {len(users_to_process)} total users...")
+            f"Identivibe Intelligence: Processing {len(users_to_process)} "
+            f"total users...")
 
         try:
             response = self.client.models.generate_content(
                 model=self.model_id,
-                contents=f"Analyze this payload: {json.dumps(users_to_process)}",
+                contents=f"Analyze this payload: "
+                         f"{json.dumps(users_to_process)}",
                 config=types.GenerateContentConfig(
                     system_instruction=self.get_system_prompt(),
                     response_mime_type="application/json",

@@ -1,5 +1,5 @@
 # 1. Security (Crucial)
-.env
+../.env
 
 # 2. Python Caches (Prevents __pycache__ folders from appearing)
 __pycache__/

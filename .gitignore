@@ -1,14 +1,7 @@
-# Cache files
-cache/
 
-# Output files
-instagram_bundles.json
+# Ignore LinkedIn local env
+Desktop/uofthacks/linkedin/.env
+linkedin/.env
 
-# Environment files (if you create one)
 .env
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
 output.json

@@ -1,3 +1,0 @@
-apify-client
-google-genai
-python-dotenv

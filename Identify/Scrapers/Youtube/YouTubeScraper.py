@@ -13,8 +13,12 @@ load_dotenv()
 class YouTubeScraper(SocialScraper):
     """Handles all direct interactions with the YouTube Data API."""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, target: str):
         self.service = build('youtube', 'v3', developerKey=api_key)
+        if target[0] != '@':
+            self.target = '@' + target
+        else:
+            self.target = target
 
     def get_channel_id(self, handle: str) -> str:
         res = self.service.search().list(
@@ -66,7 +70,7 @@ class YouTubeScraper(SocialScraper):
                                      raw_topics]
         return topic_map
 
-    def get_payload(self, target: str) -> dict:
+    def get_payload(self) -> dict:
         """
         Implementation of the SocialScraper interface.
         Note: We extract the key from our current service to maintain state.
@@ -78,7 +82,7 @@ class YouTubeScraper(SocialScraper):
         aggregator = DataAggregator(self)
 
         # We pass explicit limits here to prevent the '300 users' bug
-        return aggregator.build_payload(target, vid_limit=5, comm_limit=5)
+        return aggregator.build_payload(self.target, vid_limit=5, comm_limit=5)
 
 
 class DataAggregator:
