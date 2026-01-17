@@ -3,6 +3,7 @@ import json
 from dotenv import load_dotenv
 
 from Scrapers.Youtube.youTubeScraper import YouTubeScraper
+from Scrapers.instagram.instagram_scraper import InstagramScraper
 from Gemini.gemini import GeminiEnricher
 from Gemini.nanoBanana import NanoBananaGenerator
 
@@ -15,7 +16,8 @@ def main():
 
     # 2. Initialize Classes
     # Pass BOTH arguments to the constructor as you intended
-    scraper = YouTubeScraper(os.getenv("YOUTUBE_API_KEY"), channel_input)
+    #scraper = YouTubeScraper(os.getenv("YOUTUBE_API_KEY"), channel_input)
+    scraper = InstagramScraper("cristiano")
     enricher = GeminiEnricher()
     generator = NanoBananaGenerator()
 
