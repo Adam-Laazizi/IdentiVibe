@@ -148,7 +148,7 @@ if __name__ == "__main__":
         final_payload = scraper.get_payload('@GameTheory')
 
         # 3. Output to local JSON
-        with open("community_payload.json", "w") as f:
+        with open("../community_payload.json", "w") as f:
             json.dump(final_payload, f, indent=4)
 
         print(

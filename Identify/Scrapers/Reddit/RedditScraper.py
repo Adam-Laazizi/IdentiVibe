@@ -6,8 +6,10 @@ from typing import Dict, Any, List, Optional, Set
 
 import requests
 
+from Identify.Scrapers.SocialScraper import SocialScraper
 
-class RedditScraper:
+
+class RedditScraper(SocialScraper):
     """Discover users from a subreddit, then fetch each user's global activity.
 
     Public endpoints used:
