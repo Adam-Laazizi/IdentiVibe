@@ -1,9 +1,11 @@
 import type { ResolveSourcesResponse } from "../types/sources";
 
+const API_BASE_URL = "https://mongodbbackend-l0tv.onrender.com";
+
 export async function resolveSources(
   query: string
 ): Promise<ResolveSourcesResponse> {
-  const response = await fetch("http://127.0.0.1:8000/api/resolve-sources", {
+  const response = await fetch(`${API_BASE_URL}/api/search/resolve-sources`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
