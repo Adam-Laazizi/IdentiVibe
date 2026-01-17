@@ -1,0 +1,4 @@
+
+# Ignore LinkedIn local env
+Desktop/uofthacks/linkedin/.env
+linkedin/.env
