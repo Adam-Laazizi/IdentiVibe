@@ -1,0 +1,9 @@
+{
+  "apify_token": "YOUR_APIFY_TOKEN_HERE",
+  "posts": 100,
+  "comments": 20,
+  "sample": 15,
+  "user_posts": 5,
+  "max_comments_per_user": 50,
+  "cache_dir": "./cache"
+}

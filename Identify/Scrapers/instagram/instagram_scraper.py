@@ -60,6 +60,7 @@ class InstagramScraper(SocialScraper):
         # Load config
         config = self._load_payload()
 
+        apify_token = config.get("apify_token")
         posts_limit = config.get("posts", 10)
         comments_limit = config.get("comments", 150)
         sample_size = config.get("sample", 250)
@@ -71,7 +72,7 @@ class InstagramScraper(SocialScraper):
         logger.info(f"Config: posts={posts_limit}, comments={comments_limit}, sample={sample_size}")
 
         # Initialize client
-        client = ApifyClient(cache_dir=cache_dir)
+        client = ApifyClient(token=apify_token, cache_dir=cache_dir)
 
         # Step 1: Scrape seed account posts
         logger.info(f"Step 1: Scraping posts from @{target}...")
