@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,7 +14,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_resolver: GeminiSourceResolver | None = None
+_resolver: Optional[GeminiSourceResolver] = None
 
 def get_resolver() -> GeminiSourceResolver:
     global _resolver
