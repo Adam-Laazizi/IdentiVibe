@@ -60,26 +60,32 @@ export function Home({ navigate }: HomeProps) {
               animationDuration: '3s',
               letterSpacing: '0.15em'
             }}>
-              <span style={{
-                background: 'linear-gradient(135deg, #b64306ff 0%, #cb6607ff 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 0 20px rgba(87, 25, 4, 0.3)'
-              }}>
-                IDENTI
-              </span>
-              <span style={{
-                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                textShadow: '0 0 50px rgba(251, 191, 36, 0.8), 0 0 100px rgba(245, 158, 11, 0.6)',
-                fontWeight: 'bolder',
-                filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.6))'
-              }}>
-                VIBE
-              </span>
+              <span
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow: '0 0 24px rgba(99, 102, 241, 0.35)',
+              filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.45))'
+            }}
+          >
+            IDENTI
+          </span>
+          <span
+            style={{
+              background: 'linear-gradient(135deg, #facc15 0%, #22d3ee 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow:
+                '0 0 40px rgba(250, 204, 21, 0.85), 0 0 90px rgba(34, 211, 238, 0.65)',
+              fontWeight: 'bolder',
+              filter: 'drop-shadow(0 0 22px rgba(34, 211, 238, 0.7))'
+            }}
+          >
+            VIBE
+          </span>
             </h1>
             <p className="text-xl text-violet-200 tracking-wide" style={{
               fontFamily: '"Courier New", monospace',
