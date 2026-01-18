@@ -22,12 +22,14 @@ load_dotenv()
 class YouTubeScraper(SocialScraper):
     """Handles all direct interactions with the YouTube Data API."""
 
-    def __init__(self, api_key: str, target: str):
+    def __init__(self, api_key: str, target: str, vids: int, comments: int):
         self.service = build('youtube', 'v3', developerKey=api_key)
         if target[0] != '@':
             self.target = '@' + target
         else:
             self.target = target
+        self.vids = vids
+        self.comments = comments
 
     def get_channel_id(self, handle: str) -> str:
         res = self.service.search().list(
@@ -41,22 +43,22 @@ class YouTubeScraper(SocialScraper):
 
         return res['items'][0]['id']['channelId']
 
-    def get_popular_video_ids(self, channel_id: str, limit: int = 5) -> List[
+    def get_popular_video_ids(self, channel_id: str) -> List[
         str]:
         res = self.service.search().list(
             channelId=channel_id,
             part="id",
             order="viewCount",
             type="video",
-            maxResults=limit
+            maxResults=self.vids
         ).execute()
         return [item['id']['videoId'] for item in res.get('items', [])]
 
-    def get_video_comments(self, video_id: str, count: int = 5) -> List[Dict]:
+    def get_video_comments(self, video_id: str,) -> List[Dict]:
         res = self.service.commentThreads().list(
             videoId=video_id,
             part="snippet",
-            maxResults=count,
+            maxResults=self.comments,
             textFormat="plainText"
         ).execute()
         return res.get('items', [])
@@ -91,7 +93,8 @@ class YouTubeScraper(SocialScraper):
         aggregator = DataAggregator(self)
 
         # We pass explicit limits here to prevent the '300 users' bug
-        return aggregator.build_payload(self.target, vid_limit=5, comm_limit=5)
+        return aggregator.build_payload(self.target, vid_limit=self.vids,
+                                        comm_limit=self.comments)
 
 
 class DataAggregator:
@@ -100,11 +103,9 @@ class DataAggregator:
     def __init__(self, client: YouTubeScraper):
         self.client = client
 
-    def build_payload(self, handle: str, vid_limit: int = 5,
-                      comm_limit: int = 5) -> Dict:
+    def build_payload(self, handle: str, vid_limit: int, comm_limit: int) -> Dict:
         channel_id = self.client.get_channel_id(handle)
-        video_ids = self.client.get_popular_video_ids(channel_id,
-                                                      limit=vid_limit)
+        video_ids = self.client.get_popular_video_ids(channel_id)
 
         community_data = {
             "channel_handle": handle,
@@ -114,7 +115,8 @@ class DataAggregator:
         temp_users = {}
 
         for v_id in video_ids:
-            comments = self.client.get_video_comments(v_id, count=comm_limit)
+            comments = (self.client.
+                        get_video_comments(v_id))
 
             # Extract author IDs for this specific video's batch
             author_ids = [
@@ -138,7 +140,8 @@ class DataAggregator:
                         "comments": [snippet['textDisplay']]
                     }
                 else:
-                    # Deduplication: add comment to existing user if they appeared before
+                    # Deduplication: add comment to existing user if they
+                    # appeared before
                     temp_users[a_id]["comments"].append(snippet['textDisplay'])
 
         # Finalize the dictionary into a list for JSON export
@@ -153,7 +156,7 @@ class DataAggregator:
 if __name__ == "__main__":
     # 1. Initialize the Scraper (Worker)
     api_key = os.getenv("YOUTUBE_API_KEY")
-    scraper = YouTubeScraper(api_key)
+    scraper = YouTubeScraper(api_key, "@b", 2, 2)
 
     # 2. Call the Interface Method
     # This now strictly respects the 3-video / 20-comment limit

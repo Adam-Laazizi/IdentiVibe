@@ -34,33 +34,59 @@ export function Sources({ initialState, navigate }: SourcesProps) {
     setSaving(true);
     setSaveError('');
 
-    const platformMap: Record<keyof Sources, string> = {
-      redditUrl: 'reddit',
-      youtubeUrl: 'youtube',
-      linkedinUrl: 'linkedin',
-      instagramUrl: 'instagram',
-    };
-
-    const platforms = (Object.keys(platformMap) as (keyof Sources)[])
-      .filter((k) => (sources[k] || '').trim().length > 0)
-      .map((k) => platformMap[k]);
-
     try {
+      // 1. Extract the YouTube handle from the input (e.g., @linustechtips)
+      const ytInput = sources.youtubeUrl || '';
+      const handle = ytInput.includes('@') ? ytInput.split('@')[1].split('/')[0] : ytInput;
+
+      if (!handle) {
+        throw new Error('Please provide a valid YouTube handle');
+      }
+
+      // 2. Call your FastAPI Backend to run the Scraper
+      console.log(`Executing Python Scraper for handle: @${handle}`);
+      const scraperResponse = await fetch(`http://localhost:8000/scrape/youtube/${handle}`);
+
+      if (!scraperResponse.ok) {
+        throw new Error('Python Backend unreachable. Is uvicorn main:app running?');
+      }
+
+      const pythonScrapedData = await scraperResponse.json();
+
+      // 3. Save the results to MongoDB
+      const platformMap: Record<keyof Sources, string> = {
+        redditUrl: 'reddit',
+        youtubeUrl: 'youtube',
+        linkedinUrl: 'linkedin',
+        instagramUrl: 'instagram',
+      };
+
+      const platforms = (Object.keys(platformMap) as (keyof Sources)[])
+        .filter((k) => (sources[k] || '').trim().length > 0)
+        .map((k) => platformMap[k]);
+
       await saveSearch({
         userId: 'user123',
         query,
         platforms,
-        // For now, store what we currently have as the "geminiResult".
-        // Later you can replace this with the real analysis output.
         geminiResult: {
           query,
           sources,
+          scrapedData: pythonScrapedData, // Storing the actual Python results
+          timestamp: new Date().toISOString()
         },
       });
 
-      navigate('/results', { query, sources });
+      // 4. Navigate to Results with the scraped data
+      navigate('/results', {
+  query,
+  sources,
+  analysisResult: pythonScrapedData
+} as never);
+
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save search');
+      console.error("Submission Error:", e);
+      setSaveError(e instanceof Error ? e.message : 'Failed to execute analysis');
     } finally {
       setSaving(false);
     }
@@ -321,7 +347,7 @@ export function Sources({ initialState, navigate }: SourcesProps) {
             className="flex-1 px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-bold tracking-wider transition-all duration-300 transform hover:scale-105 shadow-lg shadow-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             style={{ fontFamily: '"Orbitron", sans-serif', textTransform: 'uppercase' }}
           >
-            {saving ? 'Saving...' : 'Execute Analysis →'}
+            {saving ? 'ANALYZING...' : 'Execute Analysis →'}
           </button>
         </div>
       </div>
