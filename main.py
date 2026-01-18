@@ -35,7 +35,8 @@ async def get_youtube_data(handle: str):
     try:
         # 1. Initialize Classes
         api_key = os.getenv("YOUTUBE_API_KEY")
-        scraper = YouTubeScraper(api_key=api_key, target=handle)
+        scraper = YouTubeScraper(api_key=api_key, target=handle, vids=3
+                                 ,comments= 3)
         enricher = GeminiEnricher()
         generator = NanoBananaGenerator()
 

@@ -54,14 +54,27 @@ class YouTubeScraper(SocialScraper):
         ).execute()
         return [item['id']['videoId'] for item in res.get('items', [])]
 
-    def get_video_comments(self, video_id: str,) -> List[Dict]:
-        res = self.service.commentThreads().list(
-            videoId=video_id,
-            part="snippet",
-            maxResults=self.comments,
-            textFormat="plainText"
-        ).execute()
-        return res.get('items', [])
+    def get_video_comments(self, video_id: str) -> List[Dict]:
+        """Fetches comments for a video, skipping if comments are disabled."""
+        try:
+            res = self.service.commentThreads().list(
+                videoId=video_id,
+                part="snippet",
+                maxResults=self.comments,
+                textFormat="plainText"
+            ).execute()
+            return res.get('items', [])
+
+        except Exception as e:
+            # Check if the error is specifically about disabled comments
+            error_str = str(e)
+            if "commentsDisabled" in error_str or "403" in error_str:
+                print(
+                    f"// ALERT: Skipping video {video_id} - Comments are disabled.")
+                return []  # Return empty list so the loop continues instead of crashing
+
+            # If it's a different error (like Quota issues), re-raise it
+            raise e
 
     def get_user_topics(self, author_ids: List[str]) -> Dict[str, List[str]]:
         """Fetches topicCategories for a batch of users."""
