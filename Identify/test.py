@@ -2,9 +2,9 @@ import os
 import json
 from dotenv import load_dotenv
 
-from Identify.Scrapers.Youtube.YouTubeScraper import YouTubeScraper
-from Identify.Gemini.gemini import GeminiEnricher
-from Identify.Gemini.nanoBanana import NanoBananaGenerator
+from Scrapers.Youtube.youTubeScraper import YouTubeScraper
+from Gemini.gemini import GeminiEnricher
+from Gemini.nanoBanana import NanoBananaGenerator
 
 load_dotenv()
 
