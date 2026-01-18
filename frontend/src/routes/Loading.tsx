@@ -22,7 +22,6 @@ const loadingMessages = [
 ];
 
 // Amplitude tracking config
-const AMPLITUDE_API_KEY = 'fade1179fcf08d585410d2ae5c8c46ae';
 const RAGE_WINDOW_MS = 2000;
 const RAGE_THRESHOLD = 7;
 const STORAGE_KEY_IMPATIENCE = 'identivibe_impatience_score';
