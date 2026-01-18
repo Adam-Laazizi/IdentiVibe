@@ -1,22 +1,29 @@
-import type { ResolveSourcesResponse } from "../types/sources";
+// src/lib/api.ts
+import type { ResolveSourcesResponse } from '../types/sources';
 
-const API_BASE_URL = "https://mongodbbackend-l0tv.onrender.com";
+const MONGODB_BACKEND = 'https://mongodbbackend-l0tv.onrender.com';
 
-export async function resolveSources(
-  query: string
-): Promise<ResolveSourcesResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/search/resolve-sources`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+async function readJsonOrThrow(res: Response) {
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!res.ok) {
+    const msg =
+      (data && (data.error || data.message)) || `HTTP ${res.status} ${res.statusText}`;
+    throw new Error(msg);
+  }
+
+  return data;
+}
+
+// POST https://mongodbbackend-l0tv.onrender.com/api/search/resolve-sources
+export async function resolveSources(query: string): Promise<ResolveSourcesResponse> {
+  const res = await fetch(`${MONGODB_BACKEND}/api/search/resolve-sources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),
   });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`API error: ${response.status} ${errorText}`);
-  }
-
-  return (await response.json()) as ResolveSourcesResponse;
+  // backend returns: { query, sources }
+  return readJsonOrThrow(res);
 }

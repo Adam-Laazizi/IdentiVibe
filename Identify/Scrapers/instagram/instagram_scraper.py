@@ -2,8 +2,8 @@
 Instagram Scraper - Main entry point.
 
 Usage (Programmatic):
-    scraper = InstagramScraper(apify_token="TOKEN", settings={"posts": 5, "sample": 10})
-    payload = scraper.get_payload("uoft")
+    scraper = InstagramScraper(apify_token="TOKEN", target="uoft", settings={"posts": 5, "sample": 10})
+    payload = scraper.get_payload()
 """
 
 import json
@@ -14,11 +14,11 @@ from typing import Any, Dict
 from urllib.parse import urlparse
 
 try:
-    from Identify.Scrapers.SocialScraper import SocialScraper
+    from Identify.Scrapers.socialScraper import SocialScraper
 except ImportError:
     # Allow running standalone from the instagram directory
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from SocialScraper import SocialScraper
+    from socialScraper import SocialScraper
 
 from connectors.instagram.apify_client import ApifyClient, ApifyError
 from connectors.instagram.bundler import (
@@ -33,12 +33,13 @@ logger = logging.getLogger(__name__)
 class InstagramScraper(SocialScraper):
     """Handles all interactions with Instagram via Apify."""
 
-    def __init__(self, apify_token: str, settings: Dict[str, Any] = None):
+    def __init__(self, apify_token: str, target: str, settings: Dict[str, Any] = None):
         if not apify_token:
             raise ValueError("An Apify API token must be provided to initialize the scraper.")
-            
+
         self.apify_token = apify_token
-        
+        self.target = self._normalize_handle(target)
+
         # Default settings are used if no settings dict is provided.
         # These are easily overridden during website integration.
         self.settings = settings or {
@@ -75,18 +76,14 @@ class InstagramScraper(SocialScraper):
         handle = handle.lstrip("@").strip()
         return handle
 
-    def get_payload(self, target: str) -> dict:
+    def get_payload(self) -> dict:
         """
         Scrape Instagram data based on the initialized settings.
-
-        Args:
-            target: The Instagram handle to scrape.
 
         Returns:
             A dictionary containing the seed handle and the bundled user data.
         """
-        target = self._normalize_handle(target)
-        if not target:
+        if not self.target:
             return {"seed_handle": "", "users": []}
 
         # Extract operational limits from settings
@@ -97,21 +94,21 @@ class InstagramScraper(SocialScraper):
         max_comments_per_user = self.settings.get("max_comments_per_user", 50)
         cache_dir = self.settings.get("cache_dir", "./cache")
 
-        logger.info(f"Starting scrape for @{target} with sample_size={sample_size}")
+        logger.info(f"Starting scrape for @{self.target} with sample_size={sample_size}")
 
         # Initialize the Apify communication client
         client = ApifyClient(token=self.apify_token, cache_dir=cache_dir)
 
         # Step 1: Scrape seed account posts
-        logger.info(f"Step 1: Scraping {posts_limit} posts from @{target}...")
+        logger.info(f"Step 1: Scraping {posts_limit} posts from @{self.target}...")
         seed_posts = client.scrape_profile_posts(
-            username=target,
+            username=self.target,
             results_limit=posts_limit,
         )
 
         if not seed_posts:
-            logger.warning(f"No posts found for handle: @{target}")
-            return {"seed_handle": target, "users": []}
+            logger.warning(f"No posts found for handle: @{self.target}")
+            return {"seed_handle": self.target, "users": []}
 
         post_urls = extract_post_urls(seed_posts)
         if not post_urls:
@@ -162,7 +159,7 @@ class InstagramScraper(SocialScraper):
         ]
 
         logger.info(f"Scrape complete: {len(users)} user bundles created ({skipped} users skipped).")
-        return {"seed_handle": target, "users": users}
+        return {"seed_handle": self.target, "users": users}
 
 # Support for local execution/debugging
 if __name__ == "__main__":
@@ -175,23 +172,23 @@ if __name__ == "__main__":
         print("Usage: python instagram_scraper.py <handle>")
         sys.exit(1)
 
-    # For local tests, we still look for a local token file,
-    # but the class itself no longer depends on it.
+    # For local tests, look for payload.json in the project root
     try:
-        with open("payload.json") as f:
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        with open(project_root / "payload.json") as f:
             local_config = json.load(f)
-        
+
         token = local_config.get("apify_token")
         target_handle = sys.argv[1]
-        
-        # Instantiate with the new pattern
-        scraper = InstagramScraper(apify_token=token, settings=local_config)
-        result = scraper.get_payload(target_handle)
-        
+
+        # Instantiate with the new pattern (like YouTubeScraper)
+        scraper = InstagramScraper(apify_token=token, target=target_handle, settings=local_config)
+        result = scraper.get_payload()
+
         # Write results to a file for inspection
         with open("instagram_output.json", "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
-            
+
         print(f"Success! Generated {len(result['users'])} user profiles.")
     except Exception as e:
         print(f"Error during execution: {e}")
