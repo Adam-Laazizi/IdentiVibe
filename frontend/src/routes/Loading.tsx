@@ -231,7 +231,7 @@ export function Loading({ initialState, navigate }: LoadingProps) {
 
 
         // Navigate to results with the scrape data
-        navigate('/results', { ...initialState, scrapeResult: result });
+        navigate('/results', { ...initialState, analysisResult: result } as any);
       } catch (err) {
         console.error('Scrape error:', err);
         setStatus('error');

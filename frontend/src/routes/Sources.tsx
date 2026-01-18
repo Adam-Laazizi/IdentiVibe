@@ -92,13 +92,7 @@ export function Sources({ initialState, navigate }: SourcesProps) {
       });
 
       // 4. NAVIGATION: Wrap the data in 'state' for React Router v6
-      navigate('/results', {
-        state: {
-          query,
-          sources,
-          analysisResult: pythonScrapedData
-        }
-      } as never);
+      navigate('/loading', { query, sources } as any);
 
     } catch (e) {
       console.error("Submission Error:", e);
