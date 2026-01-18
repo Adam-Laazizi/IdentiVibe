@@ -68,7 +68,7 @@ async def get_youtube_data(handle: str):
             generator.generate_and_clean(mascot_prompt, image_path)
 
             # Create a URL the frontend can use
-            image_url = f"http://localhost:8000/static/{image_filename}"
+            image_url = f"https://identivibe.onrender.com/static/{image_filename}"
         else:
             print("Warning: No mascot prompt found in Gemini result.")
 
