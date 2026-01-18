@@ -20,7 +20,7 @@ except ImportError:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from socialScraper import SocialScraper
 
-from connectors.instagram.apify_client import ApifyClient, ApifyError
+from connectors.instagram.apify_client import ApifyClient
 from connectors.instagram.bundler import (
     bundle_seed_comments,
     enrich_with_captions,
@@ -112,7 +112,8 @@ class InstagramScraper(SocialScraper):
 
         post_urls = extract_post_urls(seed_posts)
         if not post_urls:
-            raise ApifyError("No post URLs could be extracted from the seed account posts.")
+            logger.warning(f"No post URLs could be extracted for @{self.target}")
+            return {"seed_handle": self.target, "users": []}
 
         # Step 2: Scrape comments from those posts
         logger.info(f"Step 2: Scraping {comments_limit} total comments...")
@@ -122,7 +123,8 @@ class InstagramScraper(SocialScraper):
         )
 
         if not all_comments:
-            raise ApifyError("No comments were found on the targeted posts.")
+            logger.warning(f"No comments found on posts for @{self.target}")
+            return {"seed_handle": self.target, "users": []}
 
         # Step 3: Bundle comments by user
         logger.info("Step 3: Bundling and deduplicating user comments...")

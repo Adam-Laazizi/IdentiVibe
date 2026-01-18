@@ -1,52 +1,96 @@
-# reddit.py (NO OAuth / NO tokens)
-# Uses Reddit's public JSON endpoints. Best-effort: may be rate-limited/blocked.
+# reddit.py - Uses Reddit OAuth API
+# Requires: REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT in .env
 
+import os
 import time
-from typing import Dict, Any, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 import requests
+from dotenv import load_dotenv
 
-from Identify.Scrapers.SocialScraper import SocialScraper
+load_dotenv()
+
+try:
+    from Identify.Scrapers.SocialScraper import SocialScraper
+except ImportError:
+    from SocialScraper import SocialScraper
 
 
 class RedditScraper(SocialScraper):
     """Discover users from a subreddit, then fetch each user's global activity.
 
-    Public endpoints used:
-      - /r/{sub}/hot.json, /r/{sub}/new.json
-      - /r/{sub}/comments/{post_id}.json
-      - /user/{name}/comments.json
-      - /user/{name}/submitted.json
-
-    No OAuth. No API keys. If you need reliable high-volume access, use OAuth.
+    Uses Reddit OAuth API for reliable access.
+    Requires environment variables:
+      - REDDIT_CLIENT_ID
+      - REDDIT_CLIENT_SECRET
+      - REDDIT_USER_AGENT (optional, has default)
     """
 
-    BASE = "https://www.reddit.com"
+    AUTH_URL = "https://www.reddit.com/api/v1/access_token"
+    BASE = "https://oauth.reddit.com"
 
     def __init__(
         self,
-        user_agent: str = "identify-ai/0.1 (no-oauth) by u/your_username",
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+        user_agent: Optional[str] = None,
         timeout_s: int = 20,
         max_retries: int = 3,
         backoff_s: float = 1.2,
-        min_delay_s: float = 0.25,
+        min_delay_s: float = 0.5,
     ):
-        self.user_agent = user_agent
+        self.client_id = client_id or os.getenv("REDDIT_CLIENT_ID")
+        self.client_secret = client_secret or os.getenv("REDDIT_CLIENT_SECRET")
+        self.user_agent = user_agent or os.getenv(
+            "REDDIT_USER_AGENT", "identify-ai/1.0 by u/identify_ai_bot"
+        )
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self.backoff_s = backoff_s
         self.min_delay_s = min_delay_s
         self._last_request_t = 0.0
+        self._access_token: Optional[str] = None
+        self._token_expires_at: float = 0.0
 
-    # ---------------- HTTP helpers ----------------
+    def _get_access_token(self) -> str:
+        """Get OAuth access token using client credentials (app-only auth)."""
+        if self._access_token and time.time() < self._token_expires_at:
+            return self._access_token
+
+        if not self.client_id or not self.client_secret:
+            raise ValueError(
+                "REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET must be set in environment"
+            )
+
+        auth = (self.client_id, self.client_secret)
+        headers = {"User-Agent": self.user_agent}
+        data = {"grant_type": "client_credentials"}
+
+        resp = requests.post(
+            self.AUTH_URL, auth=auth, headers=headers, data=data, timeout=self.timeout_s
+        )
+        resp.raise_for_status()
+
+        token_data = resp.json()
+        self._access_token = token_data["access_token"]
+        # Token typically expires in 3600 seconds, refresh a bit early
+        self._token_expires_at = time.time() + token_data.get("expires_in", 3600) - 60
+
+        return self._access_token
+
     def _sleep_if_needed(self) -> None:
         dt = time.time() - self._last_request_t
         if dt < self.min_delay_s:
             time.sleep(self.min_delay_s - dt)
 
     def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
+        """Make authenticated GET request to Reddit OAuth API."""
+        token = self._get_access_token()
         url = f"{self.BASE}{path}"
-        headers = {"User-Agent": self.user_agent}
+        headers = {
+            "User-Agent": self.user_agent,
+            "Authorization": f"Bearer {token}",
+        }
 
         attempt = 0
         while True:
@@ -56,18 +100,18 @@ class RedditScraper(SocialScraper):
 
             r = requests.get(url, params=params, headers=headers, timeout=self.timeout_s)
 
-            # Retry-friendly statuses
+            # Retry on server errors or rate limiting
             if r.status_code in (429, 500, 502, 503, 504):
                 if attempt > self.max_retries:
                     r.raise_for_status()
                 time.sleep(self.backoff_s * attempt)
                 continue
 
-            # Some environments get sporadic 403 due to gating; retry a bit.
-            if r.status_code in (401, 403):
+            # Token expired - refresh and retry
+            if r.status_code == 401:
+                self._access_token = None
                 if attempt > self.max_retries:
                     r.raise_for_status()
-                time.sleep(self.backoff_s * attempt)
                 continue
 
             r.raise_for_status()
@@ -75,30 +119,30 @@ class RedditScraper(SocialScraper):
 
     # ---------------- Subreddit discovery ----------------
     def _subreddit_posts(self, subreddit: str, sort: str, limit: int) -> List[Dict[str, Any]]:
-        data = self._get(f"/r/{subreddit}/{sort}.json", {"limit": limit})
+        data = self._get(f"/r/{subreddit}/{sort}", {"limit": limit})
         return data.get("data", {}).get("children", [])
 
     def _post_comments(self, subreddit: str, post_id: str, limit: int) -> List[Dict[str, Any]]:
-        data = self._get(f"/r/{subreddit}/comments/{post_id}.json", {"limit": limit})
+        data = self._get(f"/r/{subreddit}/comments/{post_id}", {"limit": limit})
         if isinstance(data, list) and len(data) >= 2:
             return data[1].get("data", {}).get("children", [])
         return []
 
     # ---------------- User global activity ----------------
     def _user_comments(self, username: str, limit: int) -> List[Dict[str, Any]]:
-        data = self._get(f"/user/{username}/comments.json", {"limit": limit})
+        data = self._get(f"/user/{username}/comments", {"limit": limit})
         return data.get("data", {}).get("children", [])
 
     def _user_posts(self, username: str, limit: int) -> List[Dict[str, Any]]:
-        data = self._get(f"/user/{username}/submitted.json", {"limit": limit})
+        data = self._get(f"/user/{username}/submitted", {"limit": limit})
         return data.get("data", {}).get("children", [])
 
-    # ---------------- Payload ----------------
+    # ---------------- Helpers ----------------
     @staticmethod
     def _safe_author(author: Any) -> Optional[str]:
         if not author or not isinstance(author, str):
             return None
-        if author.lower() == "[deleted]":
+        if author.lower() in ("[deleted]", "[removed]", "automoderator"):
             return None
         return author
 
@@ -107,6 +151,7 @@ class RedditScraper(SocialScraper):
         items = sorted(freq.items(), key=lambda kv: kv[1], reverse=True)[:top_k]
         return [{"subreddit": k, "count": v} for k, v in items]
 
+    # ---------------- Payload ----------------
     def get_payload(
         self,
         target_subreddit: str,
@@ -116,7 +161,7 @@ class RedditScraper(SocialScraper):
         user_comment_limit: int = 60,
         user_post_limit: int = 30,
     ) -> Dict[str, Any]:
-        """Return ONLY global behaviour for users discovered from `target_subreddit`."""
+        """Return global behaviour for users discovered from `target_subreddit`."""
 
         # 1) Discover users from subreddit (posts + comments)
         posts = (
@@ -169,7 +214,7 @@ class RedditScraper(SocialScraper):
 
             try:
                 comments = self._user_comments(uname, user_comment_limit)
-                posts = self._user_posts(uname, user_post_limit)
+                user_posts = self._user_posts(uname, user_post_limit)
 
                 sub_freq: Dict[str, int] = {}
                 recent_comments: List[str] = []
@@ -184,7 +229,7 @@ class RedditScraper(SocialScraper):
                     if body:
                         recent_comments.append(body)
 
-                for item in posts:
+                for item in user_posts:
                     d = (item or {}).get("data", {})
                     sr = d.get("subreddit")
                     title = d.get("title")
@@ -201,7 +246,7 @@ class RedditScraper(SocialScraper):
                 }
 
             except Exception:
-                # Best-effort: keep empty global_activity.
+                # Best-effort: keep empty global_activity
                 pass
 
             out_users.append(user_obj)
@@ -210,5 +255,4 @@ class RedditScraper(SocialScraper):
             "platform": "reddit",
             "source_subreddit": target_subreddit,
             "users": out_users,
-            "note": "No OAuth used. Data via public reddit.com JSON endpoints; may be rate-limited/blocked.",
         }

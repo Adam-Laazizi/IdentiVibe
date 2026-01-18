@@ -8,7 +8,7 @@ import History from './routes/History';
 import type { ResolveSourcesResponse } from './types/sources';
 import './index.css';
 
-type Route = 'home' | 'sources' | 'loading' | 'results' | 'history' | 'loading-test';
+type Route = 'home' | 'sources' | 'loading' | 'results' | 'history';
 
 function useRouter() {
   const [route, setRoute] = useState<Route>('home');
@@ -19,7 +19,6 @@ function useRouter() {
       const hash = window.location.hash.slice(1);
       if (hash === '/sources') setRoute('sources');
       else if (hash === '/loading') setRoute('loading');
-      else if (hash === '/loading-test') setRoute('loading-test'); // delete this later
       else if (hash === '/results') setRoute('results');
       else if (hash === '/history') setRoute('history');
       else setRoute('home');
@@ -50,26 +49,6 @@ function App() {
   if (route === 'loading') {
     return <Loading initialState={state} navigate={navigate} />;
   }
-
-  // delete this later
-  
-  if (route === 'loading-test') {
-  return (
-    <Loading
-      initialState={{
-        query: 'Demo query',
-        sources: {
-          redditUrl: '',
-          youtubeUrl: '',
-          linkedinUrl: '',
-          instagramUrl: '',
-        },
-      }}
-      navigate={navigate}
-    />
-  );
-}
-
 
   if (route === 'results') {
     return <Results initialState={state} navigate={navigate} />;
