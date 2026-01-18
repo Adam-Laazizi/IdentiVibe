@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 google-api-python-client
 python-dotenv
-google-generativeai
+google-genai
 rembg
 pillow
 requests
