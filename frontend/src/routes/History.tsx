@@ -1,61 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getHistory, getSearchById } from '../lib/mongodbApi';
 
-interface HistoryItem {
+interface HistoryRow {
+  _id: string;
   query: string;
-  timestamp: string;
-  sources: {
-    reddit?: string;
-    youtube?: string;
-    linkedin?: string;
-    instagram?: string;
-  };
-  community_report: any;
+  platforms: any[];
+  createdAt: string;
 }
 
-const HISTORY_DATA: HistoryItem[] = [
-  {
-    query: "Game Theory community analysis",
-    timestamp: "2025-01-17T14:30:00Z",
-    sources: {
-      reddit: "https://reddit.com/r/GameTheory",
-      youtube: "https://youtube.com/@GameTheory"
-    },
-    community_report: {
-      overall_archetype: "Theorizing Gamers",
-      community_summary: "This community primarily consists of individuals deeply engaged with video game culture, particularly the analysis and theorization aspects.",
-      user_dossiers: [
-        {
-          user_id: "UCTB-eLMDVxsRkzuMHavHwAg",
-          identity_profile: {
-            archetype: "Skeptical Observer",
-            persona_description: "This user seems to offer terse, critical observations.",
-            primary_interest: "Critique"
-          }
-        }
-      ]
-    }
-  },
-  {
-    query: "Tech startup founders LinkedIn",
-    timestamp: "2025-01-16T09:15:00Z",
-    sources: {
-      linkedin: "https://linkedin.com/in/sample",
-      instagram: "https://instagram.com/techstartups"
-    },
-    community_report: {
-      overall_archetype: "Tech Innovators",
-      community_summary: "A group of early-stage founders sharing insights and networking.",
-      user_dossiers: []
-    }
-  }
-];
+interface HistoryApiResponse {
+  success: boolean;
+  count: number;
+  data: HistoryRow[];
+}
+
+interface SearchByIdResponse {
+  success: boolean;
+  data: any;
+}
 
 interface HistoryProps {
   navigate: (path: string) => void;
 }
 
 export default function History({ navigate }: HistoryProps) {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [items, setItems] = useState<HistoryRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [detailsById, setDetailsById] = useState<Record<string, any>>({});
+  const [detailsLoadingId, setDetailsLoadingId] = useState<string | null>(null);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -65,12 +40,48 @@ export default function History({ navigate }: HistoryProps) {
       year: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
+      hour12: true,
     });
   };
 
-  const toggleExpanded = (index: number) => {
-    setExpandedIndex(expandedIndex === index ? null : index);
+  useEffect(() => {
+    const run = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res: HistoryApiResponse = await getHistory('user123', 20);
+        setItems(res?.data || []);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to fetch history');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    run();
+  }, []);
+
+  const toggleExpanded = async (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+
+    setExpandedId(id);
+
+    if (detailsById[id]) return;
+
+    setDetailsLoadingId(id);
+    setError('');
+
+    try {
+      const res: SearchByIdResponse = await getSearchById(id);
+      setDetailsById((prev) => ({ ...prev, [id]: res?.data }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch search details');
+    } finally {
+      setDetailsLoadingId(null);
+    }
   };
 
   return (
@@ -119,123 +130,135 @@ export default function History({ navigate }: HistoryProps) {
           </button>
         </div>
 
-        <div className="space-y-5">
-          {HISTORY_DATA.map((item, index) => {
-            const isExpanded = expandedIndex === index;
+        {error && (
+          <div className="mb-6 relative overflow-hidden p-5 bg-red-950/50 backdrop-blur-sm border border-red-500/50 rounded-xl animate-pulse">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent"></div>
+            <p className="relative text-red-300 font-medium" style={{ fontFamily: '"Fira Code", monospace' }}>
+              ⚠ ERROR: {error}
+            </p>
+          </div>
+        )}
 
-            return (
-              <div
-                key={index}
-                className="relative group"
-              >
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6 hover:border-violet-400/50 transition-all duration-300">
-                  <div className="mb-4">
-                    <h2 className="text-xl font-bold text-violet-100 mb-2" style={{
-                      fontFamily: '"Orbitron", sans-serif'
-                    }}>
-                      {item.query}
-                    </h2>
-                    <p className="text-sm text-cyan-300/70" style={{
-                      fontFamily: '"Fira Code", monospace'
-                    }}>
-                      TIMESTAMP: {formatTimestamp(item.timestamp)}
-                    </p>
-                  </div>
-
-                  {Object.keys(item.sources).length > 0 && (
-                    <div className="mb-5">
-                      <p className="text-sm font-semibold text-violet-300 mb-3 tracking-wider" style={{
-                        fontFamily: '"Fira Code", monospace',
-                        textTransform: 'uppercase'
-                      }}>
-                        // Sources Located:
-                      </p>
-                      <div className="flex flex-wrap gap-3">
-                        {item.sources.reddit && (
-                          <a
-                            href={item.sources.reddit}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-violet-600/50 to-fuchsia-600/50 border border-violet-400/40 text-violet-100 rounded-lg hover:from-violet-500/60 hover:to-fuchsia-500/60 hover:border-violet-300/60 transition-all duration-300 backdrop-blur-sm"
-                            style={{ fontFamily: '"Fira Code", monospace' }}
-                          >
-                            REDDIT
-                          </a>
-                        )}
-                        {item.sources.youtube && (
-                          <a
-                            href={item.sources.youtube}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-violet-600/50 to-fuchsia-600/50 border border-violet-400/40 text-violet-100 rounded-lg hover:from-violet-500/60 hover:to-fuchsia-500/60 hover:border-violet-300/60 transition-all duration-300 backdrop-blur-sm"
-                            style={{ fontFamily: '"Fira Code", monospace' }}
-                          >
-                            YOUTUBE
-                          </a>
-                        )}
-                        {item.sources.linkedin && (
-                          <a
-                            href={item.sources.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-violet-600/50 to-fuchsia-600/50 border border-violet-400/40 text-violet-100 rounded-lg hover:from-violet-500/60 hover:to-fuchsia-500/60 hover:border-violet-300/60 transition-all duration-300 backdrop-blur-sm"
-                            style={{ fontFamily: '"Fira Code", monospace' }}
-                          >
-                            LINKEDIN
-                          </a>
-                        )}
-                        {item.sources.instagram && (
-                          <a
-                            href={item.sources.instagram}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-violet-600/50 to-fuchsia-600/50 border border-violet-400/40 text-violet-100 rounded-lg hover:from-violet-500/60 hover:to-fuchsia-500/60 hover:border-violet-300/60 transition-all duration-300 backdrop-blur-sm"
-                            style={{ fontFamily: '"Fira Code", monospace' }}
-                          >
-                            INSTAGRAM
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => toggleExpanded(index)}
-                    className="flex items-center gap-2 text-sm text-cyan-300 hover:text-cyan-100 transition-colors group/btn"
-                    style={{ fontFamily: '"Fira Code", monospace' }}
-                  >
-                    {isExpanded ? (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform duration-300 group-hover/btn:-translate-y-0.5">
-                          <polyline points="18 15 12 9 6 15"></polyline>
-                        </svg>
-                        [HIDE_DATA]
-                      </>
-                    ) : (
-                      <>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-transform duration-300 group-hover/btn:translate-y-0.5">
-                          <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                        [VIEW_DATA]
-                      </>
-                    )}
-                  </button>
-
-                  {isExpanded && (
-                    <div className="mt-4 p-4 bg-slate-950/60 backdrop-blur-sm rounded-xl border border-cyan-500/30 overflow-x-auto">
-                      <pre className="text-xs text-cyan-100/90" style={{
-                        fontFamily: '"Fira Code", "Courier New", monospace'
-                      }}>
-                        {JSON.stringify(item.community_report, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
+        {loading ? (
+          <div className="text-violet-300" style={{ fontFamily: '"Fira Code", monospace' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-violet-400 border-t-transparent rounded-full animate-spin"></div>
+              Loading history...
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {items.length === 0 ? (
+              <div className="text-violet-300/70" style={{ fontFamily: '"Fira Code", monospace' }}>
+                No history found for user123.
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              items.map((item) => {
+                const isExpanded = expandedId === item._id;
+                const detail = detailsById[item._id];
+
+                return (
+                  <div
+                    key={item._id}
+                    className="relative group"
+                  >
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                    <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6 hover:border-violet-400/50 transition-all duration-300">
+                      <div className="mb-4">
+                        <h2 className="text-xl font-bold text-violet-100 mb-2" style={{
+                          fontFamily: '"Orbitron", sans-serif'
+                        }}>
+                          {item.query}
+                        </h2>
+                        <p className="text-sm text-cyan-300/70" style={{
+                          fontFamily: '"Fira Code", monospace'
+                        }}>
+                          TIMESTAMP: {formatTimestamp(item.createdAt)}
+                        </p>
+                      </div>
+
+                      {Array.isArray(item.platforms) && item.platforms.length > 0 && (
+                        <div className="mb-5">
+                          <p className="text-sm font-semibold text-violet-300 mb-3 tracking-wider" style={{
+                            fontFamily: '"Fira Code", monospace',
+                            textTransform: 'uppercase'
+                          }}>
+                            // Platforms:
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            {item.platforms.map((p, idx) => (
+                              <span
+                                key={idx}
+                                className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-violet-600/50 to-fuchsia-600/50 border border-violet-400/40 text-violet-100 rounded-lg backdrop-blur-sm"
+                                style={{ fontFamily: '"Fira Code", monospace' }}
+                              >
+                                {typeof p === 'string' ? p : JSON.stringify(p)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => toggleExpanded(item._id)}
+                        className="flex items-center gap-2 text-sm text-cyan-300 hover:text-cyan-100 transition-colors group/btn"
+                        style={{ fontFamily: '"Fira Code", monospace' }}
+                      >
+                        {isExpanded ? (
+                          <>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="transition-transform duration-300 group-hover/btn:-translate-y-0.5"
+                            >
+                              <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                            [HIDE_DATA]
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              className="transition-transform duration-300 group-hover/btn:translate-y-0.5"
+                            >
+                              <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                            [VIEW_DATA]
+                          </>
+                        )}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-4 p-4 bg-slate-950/60 backdrop-blur-sm rounded-xl border border-cyan-500/30 overflow-x-auto">
+                          <pre className="text-xs text-cyan-100/90" style={{
+                            fontFamily: '"Fira Code", "Courier New", monospace'
+                          }}>
+                            {detailsLoadingId === item._id
+                              ? 'Loading...'
+                              : JSON.stringify(
+                                  detail?.geminiResult ?? detail ?? {},
+                                  null,
+                                  2
+                                )}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
       <style>{`
