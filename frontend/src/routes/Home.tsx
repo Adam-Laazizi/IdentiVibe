@@ -60,7 +60,7 @@ export function Home({ navigate }: HomeProps) {
               textShadow: '0 0 40px rgba(139, 92, 246, 0.5)',
               animationDuration: '3s'
             }}>
-              IDENTIFY.AI
+              IDENTIVIBE
             </h1>
             <p className="text-xl text-violet-200 tracking-wide" style={{
               fontFamily: '"Courier New", monospace',
