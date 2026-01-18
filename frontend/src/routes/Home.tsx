@@ -55,12 +55,30 @@ export function Home({ navigate }: HomeProps) {
       <div className="relative flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-3xl">
           <div className="text-center mb-16 space-y-6">
-            <h1 className="text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-300 to-cyan-400 animate-pulse" style={{
+            <h1 className="text-7xl font-black animate-pulse" style={{
               fontFamily: '"Bebas Neue", "Impact", sans-serif',
-              textShadow: '0 0 40px rgba(139, 92, 246, 0.5)',
-              animationDuration: '3s'
+              animationDuration: '3s',
+              letterSpacing: '0.15em'
             }}>
-              IDENTIVIBE
+              <span style={{
+                background: 'linear-gradient(135deg, #a78bfa 0%, #c084fc 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 20px rgba(167, 139, 250, 0.3)'
+              }}>
+                IDENTI
+              </span>
+              <span style={{
+                background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                textShadow: '0 0 30px rgba(6, 182, 212, 0.6)',
+                fontWeight: 'bolder'
+              }}>
+                VIBE
+              </span>
             </h1>
             <p className="text-xl text-violet-200 tracking-wide" style={{
               fontFamily: '"Courier New", monospace',
