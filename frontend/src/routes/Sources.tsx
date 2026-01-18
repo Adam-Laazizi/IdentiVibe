@@ -35,43 +35,39 @@ export function Sources({ initialState, navigate }: SourcesProps) {
     setSaveError('');
 
     try {
-      // 1. EXTRACT HANDLE: Robust conversion for multiple URL types
+      // 1. EXTRACT HANDLE: Robust conversion for all YouTube URL types (user, c, channel, @)
       const ytInput = (sources.youtubeUrl || '').trim();
       let handle = '';
 
       if (ytInput.includes('@')) {
-        // Case: https://youtube.com/@mkbhd
         handle = ytInput.split('@')[1].split('/')[0];
       } else if (ytInput.includes('/user/')) {
-        // Case: https://youtube.com/user/marquesbrownlee
-        handle = ytInput.split('/user/')[1].split('`/')[0];
+        handle = ytInput.split('/user/')[1].split('/')[0];
       } else if (ytInput.includes('/channel/')) {
-        // Case: https://youtube.com/channel/UC...
         handle = ytInput.split('/channel/')[1].split('/')[0];
       } else if (ytInput.includes('/c/')) {
-        // Case: https://youtube.com/c/mkbhd
         handle = ytInput.split('/c/')[1].split('/')[0];
       } else {
-        // Case: Just the handle "mkbhd" or "uoft"
+        // Fallback for just the handle string
         handle = ytInput.replace('https://', '').replace('http://', '').replace('www.youtube.com/', '');
       }
 
-      // Clean up any trailing slashes or query parameters
+      // Clean trailing slashes or query params
       handle = handle.split('?')[0].split('/')[0];
 
       if (!handle && ytInput.length > 0) throw new Error('Could not extract a valid YouTube handle');
 
-      // 2. TRIGGER SCRAPER: Call the FastAPI main.py bridge if YouTube is provided
+      // 2. TRIGGER SCRAPER: Call the FastAPI main.py bridge
       let pythonScrapedData = null;
       if (handle) {
         console.log(`Requesting Python Scrape for: @${handle}`);
         const scraperResponse = await fetch(`http://localhost:8000/scrape/youtube/${handle}`);
 
-        if (!scraperResponse.ok) throw new Error('Python backend (main.py) is not running');
+        if (!scraperResponse.ok) throw new Error('Python backend (main.py) is not running or returned an error');
         pythonScrapedData = await scraperResponse.json();
       }
 
-      // 3. MERGED INTENT: Save to MongoDB
+      // 3. SAVE TO MONGODB: (Your existing logic to track the search)
       const platformMap: Record<keyof Sources, string> = {
         redditUrl: 'reddit',
         youtubeUrl: 'youtube',
@@ -95,13 +91,14 @@ export function Sources({ initialState, navigate }: SourcesProps) {
         },
       });
 
-      // 4. NAVIGATION: Pass data to Results page
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // 4. NAVIGATION: Wrap the data in 'state' for React Router v6
       navigate('/results', {
-        query,
-        sources,
-        analysisResult: pythonScrapedData
-      } as any);
+        state: {
+          query,
+          sources,
+          analysisResult: pythonScrapedData
+        }
+      } as never);
 
     } catch (e) {
       console.error("Submission Error:", e);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+// REMOVED 'useLocation' to prevent the crash
 import type { ResolveSourcesResponse } from '../types/sources';
 
 type ResultsProps = {
@@ -7,145 +7,115 @@ type ResultsProps = {
   navigate: (path: string) => void;
 };
 
-// 1. Updated Interface to match main.py return structure perfectly
+// Interface matching your Python backend output
 interface ScraperResult {
-  analysis: any;        // Full Gemini JSON object
-  mascot_url: string;   // The local server URL for the image
-  archetype: string;    // The text string "THE SKEPTICAL OWL"
+  analysis: any;
+  mascot_url: string;
+  archetype: string;
 }
 
 export function Results({ initialState, navigate }: ResultsProps) {
-  const location = useLocation();
+  // 1. FIX: Read data directly from props, NOT useLocation()
+  // We treat 'initialState' as the data carrier
+  const state = initialState as any;
 
-  // 2. Extract data from Location State (passed from Sources.tsx)
-  const state = location.state as any;
-  const pythonData = state?.analysisResult as ScraperResult;
+  // Robust check: handles both direct data and nested 'state' wrapper if Sources.tsx wasn't perfectly updated
+  const pythonData = (state?.analysisResult || state?.state?.analysisResult) as ScraperResult;
 
-  // 3. Create a fallback 'display state' so the page doesn't crash if props are missing
-  const effectiveState = initialState || state;
+  // 2. Check if we have data
+  const hasData = !!pythonData;
 
   useEffect(() => {
-    // If we have neither props nor location state, go back home
-    if (!effectiveState) {
-      navigate('/');
+    if (!hasData) {
+      console.warn("No data in initialState. You might need to re-run the search.");
     }
-  }, [effectiveState, navigate]);
+  }, [hasData]);
 
-  // 4. REMOVED THE BLOCKING "if (!initialState) return null"
-  // Instead, we check if we have *any* valid state to show
-  if (!effectiveState) {
-    return null;
+  // 3. Fallback UI if data is missing
+  if (!hasData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 text-white font-mono">
+        <h1 className="text-2xl mb-4 text-red-400">⚠ No Analysis Data Received</h1>
+        <p className="mb-6 text-slate-400 text-sm">The results page received no data from the backend.</p>
+        <button
+          onClick={() => navigate('/')}
+          className="px-6 py-3 bg-violet-600 rounded-xl font-bold hover:bg-violet-500 transition-all"
+        >
+          Return Home
+        </button>
+        {/* Debug Info */}
+        <div className="mt-8 p-4 bg-black/50 rounded text-xs text-slate-500">
+          <p>Debug: initialState is {initialState ? 'Present' : 'Null'}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #2d1b3d 100%)'
     }}>
-      {/* Animated grid background */}
+      {/* Background Grid */}
       <div className="absolute inset-0 opacity-20" style={{
-        backgroundImage: `
-          linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)
-        `,
-        backgroundSize: '50px 50px',
-        animation: 'gridShift 20s linear infinite'
+        backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
+        backgroundSize: '50px 50px'
       }}></div>
 
-      <div className="relative max-w-4xl mx-auto py-8 px-4">
-        <h1 className="text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-300 to-cyan-400 mb-8" style={{
-          fontFamily: '"Bebas Neue", "Impact", sans-serif',
-          textShadow: '0 0 30px rgba(139, 92, 246, 0.5)'
-        }}>
+      <div className="relative max-w-4xl mx-auto py-8 px-4 text-white">
+        <h1 className="text-5xl font-black mb-8 tracking-tighter uppercase italic text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">
           ANALYSIS COMPLETE
         </h1>
 
-        <div className="space-y-6">
-          {/* 1. AI Archetype Result */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-            <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6 hover:border-violet-400/50 transition-all duration-300">
-              <h2 className="text-2xl font-bold text-violet-100 mb-3 tracking-wide" style={{
-                fontFamily: '"Orbitron", sans-serif'
-              }}>
-                COMMUNITY ARCHETYPE
-              </h2>
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 ${pythonData ? 'bg-green-400' : 'bg-cyan-400'} rounded-full animate-pulse`}></div>
-                <p className="text-2xl font-black text-cyan-300 uppercase tracking-tighter" style={{
-                  fontFamily: '"Fira Code", monospace'
-                }}>
-                  {pythonData?.archetype || "// Processing Archetype..."}
-                </p>
-              </div>
+        <div className="grid gap-6">
+          {/* COMMUNITY ARCHETYPE */}
+          <div className="bg-slate-900/80 p-8 rounded-3xl border border-violet-500/30">
+            <h2 className="text-sm font-bold text-violet-400 mb-2 uppercase tracking-widest">Community Archetype</h2>
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_#4ade80]"></div>
+              <p className="text-4xl font-black text-cyan-400">
+                {pythonData.archetype || "Unknown Archetype"}
+              </p>
             </div>
           </div>
 
-          {/* 2. AI Generated Mascot Image */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-fuchsia-600 to-cyan-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-            <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6 hover:border-violet-400/50 transition-all duration-300">
-              <h2 className="text-2xl font-bold text-violet-100 mb-3 tracking-wide" style={{
-                fontFamily: '"Orbitron", sans-serif'
-              }}>
-                VISUAL IDENTITY (MASCOT)
-              </h2>
-              {pythonData?.mascot_url ? (
-                <div className="mt-4 flex flex-col items-center">
-                  <img
-                    src={pythonData.mascot_url}
-                    alt="Community Mascot"
-                    className="w-64 h-64 rounded-2xl border-2 border-cyan-500/50 shadow-2xl shadow-cyan-500/20 mb-4"
-                  />
-                  <p className="text-xs text-violet-300/50 font-mono italic">Generated via Gemini + Nano Banana</p>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                  <p className="text-violet-300/70 italic" style={{ fontFamily: '"Fira Code", monospace' }}>
-                    // Image synthesis pending...
-                  </p>
-                </div>
-              )}
-            </div>
+          {/* MASCOT DISPLAY */}
+          <div className="bg-slate-900/80 p-8 rounded-3xl border border-violet-500/30 flex flex-col items-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-violet-500 to-transparent opacity-50"></div>
+
+            <h2 className="text-sm font-bold text-violet-400 mb-6 uppercase tracking-widest">Visual Identity</h2>
+
+            {pythonData.mascot_url ? (
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-violet-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-500"></div>
+                <img
+                  src={pythonData.mascot_url}
+                  alt="Mascot"
+                  className="relative w-80 h-80 rounded-2xl shadow-2xl shadow-cyan-500/20 border-2 border-white/10"
+                />
+              </div>
+            ) : (
+              <div className="w-80 h-80 flex items-center justify-center bg-slate-950/50 rounded-2xl border border-white/5">
+                <p className="text-violet-300 italic animate-pulse">Mascot image loading...</p>
+              </div>
+            )}
           </div>
 
-          {/* 3. Debug Section: Raw JSON */}
-          <div className="relative group mb-8">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
-            <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6">
-              <h2 className="text-2xl font-bold text-violet-100 mb-4 tracking-wide" style={{
-                fontFamily: '"Orbitron", sans-serif'
-              }}>
-                RAW DATA BUNDLE
-              </h2>
-              <div className="bg-slate-950/80 backdrop-blur-sm border border-cyan-500/30 rounded-xl p-4 max-h-60 overflow-auto">
-                <pre className="text-xs text-cyan-100/70" style={{
-                  fontFamily: '"Fira Code", "Courier New", monospace'
-                }}>
-                  {JSON.stringify(pythonData || effectiveState, null, 2)}
-                </pre>
-              </div>
-            </div>
-          </div>
+          {/* Raw Data Debug (Hidden by default, helpful for verification) */}
+          <details className="bg-slate-950/50 p-4 rounded-xl border border-white/10 group">
+            <summary className="cursor-pointer text-xs text-violet-300 group-hover:text-cyan-300 transition-colors">View Raw Data Payload</summary>
+            <pre className="text-xs text-cyan-100/70 mt-2 overflow-auto max-h-40 font-mono">
+              {JSON.stringify(pythonData, null, 2)}
+            </pre>
+          </details>
         </div>
 
-        <div className="mt-8 flex justify-center">
-          <button
-            onClick={() => navigate('/')}
-            className="group px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-bold tracking-wider transition-all duration-300 transform hover:scale-105 shadow-lg shadow-violet-500/50"
-            style={{ fontFamily: '"Orbitron", sans-serif', textTransform: 'uppercase' }}
-          >
-            ← New Search
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('/')}
+          className="mt-8 px-10 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl font-bold hover:scale-105 transition-transform shadow-lg shadow-violet-500/25"
+        >
+          START NEW ANALYSIS
+        </button>
       </div>
-
-      <style>{`
-        @keyframes gridShift {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(50px); }
-        }
-      `}</style>
     </div>
   );
 }
