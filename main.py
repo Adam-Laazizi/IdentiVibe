@@ -18,7 +18,13 @@ app = FastAPI()
 # Enable CORS for React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://identivibe.tech/", "http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",          # Allows local testing
+        "https://identivibe.tech",        # <--- UNBLOCKS YOUR SITE
+        "https://www.identivibe.tech",    # <--- Catch-all for 'www'
+        "https://identivibe.onrender.com" # Allows backend self-checks
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
