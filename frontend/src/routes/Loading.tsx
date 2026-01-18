@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ResolveSourcesResponse } from '../types/sources';
 
 type LoadingProps = {
   initialState: ResolveSourcesResponse | null;
-  navigate: (path: string, state?: ResolveSourcesResponse) => void;
+  navigate: (path: string, state?: unknown) => void;
 };
 
 const loadingMessages = [
@@ -21,15 +21,138 @@ const loadingMessages = [
   'Reading the matrix...',
 ];
 
+// Amplitude tracking config
+const AMPLITUDE_API_KEY = 'fade1179fcf08d585410d2ae5c8c46ae';
+const RAGE_WINDOW_MS = 2000;
+const RAGE_THRESHOLD = 7;
+const STORAGE_KEY_IMPATIENCE = 'identivibe_impatience_score';
+const STORAGE_KEY_DEVICE_ID = 'identivibe_device_id';
+
+// Generate a simple device ID if none exists
+function getOrCreateDeviceId(): string {
+  let deviceId = localStorage.getItem(STORAGE_KEY_DEVICE_ID);
+  if (!deviceId) {
+    deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem(STORAGE_KEY_DEVICE_ID, deviceId);
+  }
+  return deviceId;
+}
+
+// Get previous impatience score (default 0.5 for new users)
+function getStoredImpatienceScore(): number {
+  const stored = localStorage.getItem(STORAGE_KEY_IMPATIENCE);
+  return stored ? parseFloat(stored) : 0.5;
+}
+
+// Save impatience score for next visit
+function saveImpatienceScore(score: number): void {
+  localStorage.setItem(STORAGE_KEY_IMPATIENCE, score.toString());
+}
+
+// Compute new impatience score based on behavior
+function computeImpatienceScore(
+  rageClicks: number,
+  totalClicks: number,
+  tabSwitches: number,
+  waitTimeMs: number
+): number {
+  let score = 0;
+
+  // Rage clicks are a strong signal
+  if (rageClicks > 0) score += 0.4;
+
+  // High click count indicates impatience
+  if (totalClicks > 20) score += 0.2;
+  else if (totalClicks > 10) score += 0.1;
+
+  // Tab switches indicate distraction/impatience
+  if (tabSwitches > 2) score += 0.2;
+  else if (tabSwitches > 0) score += 0.1;
+
+  // Patient if they waited without much clicking
+  if (waitTimeMs > 5000 && totalClicks < 5) score -= 0.2;
+
+  // Clamp between 0 and 1
+  return Math.max(0, Math.min(1, score + 0.3)); // Base of 0.3
+}
+
 export function Loading({ initialState, navigate }: LoadingProps) {
   const [messageIndex, setMessageIndex] = useState(0);
+  const [status, setStatus] = useState<'loading' | 'error'>('loading');
+  const [errorMsg, setErrorMsg] = useState('');
 
+  // Tracking refs (don't trigger re-renders)
+  const clickTimesRef = useRef<number[]>([]);
+  const totalClicksRef = useRef(0);
+  const rageClicksRef = useRef(0);
+  const tabSwitchesRef = useRef(0);
+  const startTimeRef = useRef(Date.now());
+  const hasCompletedRef = useRef(false);
+
+  // Get stored values
+  const deviceId = useRef(getOrCreateDeviceId());
+  const previousImpatience = useRef(getStoredImpatienceScore());
+
+  // Track clicks for rage detection
+  const handleClick = useCallback(() => {
+    const now = performance.now();
+    totalClicksRef.current += 1;
+
+    // Add to sliding window
+    clickTimesRef.current.push(now);
+    clickTimesRef.current = clickTimesRef.current.filter(
+      (t) => now - t <= RAGE_WINDOW_MS
+    );
+
+    // Check for rage click
+    if (clickTimesRef.current.length >= RAGE_THRESHOLD) {
+      rageClicksRef.current += 1;
+      console.log('🔥 Rage click detected!', {
+        clicks: clickTimesRef.current.length,
+        total: totalClicksRef.current,
+      });
+      // Reset window after rage detection
+      clickTimesRef.current = [];
+    }
+  }, []);
+
+  // Track tab switches
+  const handleVisibilityChange = useCallback(() => {
+    if (document.visibilityState === 'hidden') {
+      tabSwitchesRef.current += 1;
+      console.log('👀 Tab switch detected', { count: tabSwitchesRef.current });
+    }
+  }, []);
+
+  // Save behavior on page unload (potential rage quit)
+  const handleBeforeUnload = useCallback(() => {
+    if (!hasCompletedRef.current) {
+      // User left before completion - high impatience
+      saveImpatienceScore(0.9);
+      console.log('😤 Rage quit detected - saving high impatience');
+    }
+  }, []);
+
+  // Redirect if no initial state
   useEffect(() => {
     if (!initialState) {
       navigate('/');
       return;
     }
   }, [initialState, navigate]);
+
+  // Set up event listeners for tracking
+  useEffect(() => {
+    document.addEventListener('click', handleClick);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('click', handleClick);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [handleClick, handleVisibilityChange, handleBeforeUnload]);
 
   // Cycle through messages every 2 seconds
   useEffect(() => {
@@ -40,18 +163,92 @@ export function Loading({ initialState, navigate }: LoadingProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // TODO: Replace this with actual API call to your backend
-  // For now, simulate loading for 8 seconds then go to results
+  // Call the actual scrape API
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      navigate('/results', initialState ?? undefined);
-    }, 8000);
+    if (!initialState) return;
 
-    return () => clearTimeout(timeout);
+    const runScrape = async () => {
+      try {
+        console.log('🚀 Starting scrape with impatience:', previousImpatience.current);
+
+        const response = await fetch('http://localhost:8000/api/scrape', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sources: initialState.sources,
+            impatience_score: previousImpatience.current,
+            device_id: deviceId.current,
+            mock: true, // Set to false for real scraping
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        // Mark as completed before computing score
+        hasCompletedRef.current = true;
+
+        // Compute and save new impatience score
+        const waitTime = Date.now() - startTimeRef.current;
+        const newScore = computeImpatienceScore(
+          rageClicksRef.current,
+          totalClicksRef.current,
+          tabSwitchesRef.current,
+          waitTime
+        );
+        saveImpatienceScore(newScore);
+
+        console.log('✅ Scrape complete!', {
+          settings_used: result.settings_used,
+          previous_impatience: previousImpatience.current,
+          new_impatience: newScore,
+          behavior: {
+            rage_clicks: rageClicksRef.current,
+            total_clicks: totalClicksRef.current,
+            tab_switches: tabSwitchesRef.current,
+            wait_time_ms: waitTime,
+          },
+        });
+
+        // Navigate to results with the scrape data
+        navigate('/results', { ...initialState, scrapeResult: result });
+      } catch (err) {
+        console.error('Scrape error:', err);
+        setStatus('error');
+        setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
+      }
+    };
+
+    runScrape();
   }, [initialState, navigate]);
 
   if (!initialState) {
     return null;
+  }
+
+  if (status === 'error') {
+    return (
+      <div
+        className="min-h-screen relative overflow-hidden flex items-center justify-center"
+        style={{
+          background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #2d1b3d 100%)',
+        }}
+      >
+        <div className="text-center p-8">
+          <h1 className="text-3xl text-red-400 mb-4">Error</h1>
+          <p className="text-violet-300 mb-6">{errorMsg}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-6 py-3 bg-violet-600 text-white rounded-xl"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
