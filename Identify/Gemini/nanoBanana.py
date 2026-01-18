@@ -14,8 +14,7 @@ class NanoBananaGenerator:
         # Initialize GenAI Client
         self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-        # Pre-load the LIGHTWEIGHT background removal model
-        # This saved your server from crashing!
+        # MEMORY FIX: Using 'u2netp' to stay under Render's RAM limits
         self.rembg_session = new_session("u2netp")
 
     def generate_and_clean(self, prompt: str,
@@ -23,23 +22,21 @@ class NanoBananaGenerator:
         print(f"🍌 Nano Banana Pro: Generating image for prompt...")
 
         try:
-            # --- FIX 1: Use the correct PLURAL method name ---
+            # --- SDK FIX: Use ImageConfig instead of GenerateImageConfig ---
             response = self.client.models.generate_images(
                 model='imagen-3.0-generate-002',
                 prompt=prompt,
-                config=types.GenerateImageConfig(
+                config=types.ImageConfig(
                     aspect_ratio="1:1",
                     number_of_images=1,
                     include_rai_reasoning=True
                 )
             )
 
-            # --- FIX 2: Correctly access the image bytes in the new SDK ---
             if not response.generated_images:
                 print("  [X] Error: No image returned by Google.")
                 return None
 
-            # The new SDK wraps the bytes inside a .image property
             image_bytes = response.generated_images[0].image.image_bytes
 
             # Process the image with PIL and rembg
@@ -47,8 +44,13 @@ class NanoBananaGenerator:
 
             print("  [+] Image generated. Stripping background with rembg...")
 
-            # Use the pre-loaded session
             cleaned_image = remove(raw_image, session=self.rembg_session)
+
+            # Ensure output directory exists
+            output_dir = os.path.dirname(output_filename)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+
             cleaned_image.save(output_filename, "PNG")
 
             print(f"  [---] Success! Mascot saved to {output_filename}")
@@ -56,11 +58,10 @@ class NanoBananaGenerator:
 
         except Exception as e:
             print(f"  [X] Generator Error: {e}")
-            # Print full details if available to help debugging
             return None
 
 
 if __name__ == "__main__":
     generator = NanoBananaGenerator()
-    test_prompt = "A cute chibi that is fat and banana shaped. Wearing a night gown."
+    test_prompt = "A cute chibi mascot for a tech channel."
     generator.generate_and_clean(test_prompt, "identivibe_mascot.png")
