@@ -187,9 +187,6 @@ export function Loading({ initialState, navigate }: LoadingProps) {
   useEffect(() => {
     if (!initialState) return;
 
-    const isTest = window.location.hash.startsWith('#/loading-test'); // delete this later
-    if (isTest) return; // TEMP: don't call backend                  // delete this later
-
     const runScrape = async () => {
       try {
         showPopup(
