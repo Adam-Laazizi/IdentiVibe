@@ -18,30 +18,27 @@ app = FastAPI()
 # Enable CORS for React
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],             # <--- THE WILDCARD: Allows ALL websites
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],             # Allows all actions (GET, POST, etc.)
-    allow_headers=["*"],             # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
 def home():
     return {"status": "Backend is running", "message": "Welcome to Identivibe API"}
 
-# Optional: Serve the 'Identify' folder so the website can load the generated image file
-# This allows you to access the image via http://localhost:8000/static/identivibe_mascot.png
+# Serve the 'Identify/output' folder so images are web-accessible
 if not os.path.exists("Identify/output"):
     os.makedirs("Identify/output")
 app.mount("/static", StaticFiles(directory="Identify/output"), name="static")
-
 
 @app.get("/scrape/youtube/{handle}")
 async def get_youtube_data(handle: str):
     try:
         # 1. Initialize Classes
         api_key = os.getenv("YOUTUBE_API_KEY")
-        scraper = YouTubeScraper(api_key=api_key, target=handle, vids=3
-                                 ,comments= 3)
+        scraper = YouTubeScraper(api_key=api_key, target=handle, vids=3, comments=3)
         enricher = GeminiEnricher()
         generator = NanoBananaGenerator()
 
@@ -49,11 +46,11 @@ async def get_youtube_data(handle: str):
         print(f"Scraping YouTube handle: @{handle}")
         raw_data = scraper.get_payload()
 
-        # 3. Enrich with Gemini (test.py logic)
+        # 3. Enrich with Gemini
         print("Enriching data with Gemini...")
         final_result = enricher.enrich_data(raw_data)
 
-        # 4. Generate Mascot Image with Nano Banana
+        # 4. Generate Mascot Image
         report = final_result.get("community_report", {})
         visual_id = report.get("visual_identity", {})
         mascot_prompt = visual_id.get("chibi_mascot_prompt")
@@ -67,16 +64,21 @@ async def get_youtube_data(handle: str):
             # Generate the image
             generator.generate_and_clean(mascot_prompt, image_path)
 
-            # Create a URL the frontend can use
+            # --- PRODUCTION URL ---
             image_url = f"https://identivibe.onrender.com/static/{image_filename}"
-        else:
-            print("Warning: No mascot prompt found in Gemini result.")
 
-        # 5. Return the combined data
+
+        else:
+            print("Warning: No mascot prompt found.")
+
+        # 5. RETURN FIXED STRUCTURE
+        # We nest everything in 'analysisResult' to match Results.tsx
         return {
-            "analysis": final_result,
-            "mascot_url": image_url,
-            "archetype": report.get("overall_archetype", "Unknown")
+            "analysisResult": {
+                "analysis": final_result,
+                "mascot_url": image_url,
+                "archetype": report.get("overall_archetype", "Unknown")
+            }
         }
 
     except Exception as e:
