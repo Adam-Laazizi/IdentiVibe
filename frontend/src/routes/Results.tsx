@@ -7,33 +7,33 @@ type ResultsProps = {
   navigate: (path: string) => void;
 };
 
-// Define the interface for the data coming from your Python backend
+// 1. Updated Interface to match main.py return structure perfectly
 interface ScraperResult {
-  analysis: {
-    community_report: {
-      overall_archetype: string;
-      visual_identity: {
-        chibi_mascot_prompt: string;
-      }
-    }
-  };
-  mascot_url: string;
-  archetype: string;
+  analysis: any;        // Full Gemini JSON object
+  mascot_url: string;   // The local server URL for the image
+  archetype: string;    // The text string "THE SKEPTICAL OWL"
 }
 
 export function Results({ initialState, navigate }: ResultsProps) {
   const location = useLocation();
 
-  // Extract the data we passed from Sources.tsx
-  const pythonData = (location.state as any)?.analysisResult as ScraperResult;
+  // 2. Extract data from Location State (passed from Sources.tsx)
+  const state = location.state as any;
+  const pythonData = state?.analysisResult as ScraperResult;
+
+  // 3. Create a fallback 'display state' so the page doesn't crash if props are missing
+  const effectiveState = initialState || state;
 
   useEffect(() => {
-    if (!initialState) {
+    // If we have neither props nor location state, go back home
+    if (!effectiveState) {
       navigate('/');
     }
-  }, [initialState, navigate]);
+  }, [effectiveState, navigate]);
 
-  if (!initialState) {
+  // 4. REMOVED THE BLOCKING "if (!initialState) return null"
+  // Instead, we check if we have *any* valid state to show
+  if (!effectiveState) {
     return null;
   }
 
@@ -122,7 +122,7 @@ export function Results({ initialState, navigate }: ResultsProps) {
                 <pre className="text-xs text-cyan-100/70" style={{
                   fontFamily: '"Fira Code", "Courier New", monospace'
                 }}>
-                  {JSON.stringify(pythonData || initialState, null, 2)}
+                  {JSON.stringify(pythonData || effectiveState, null, 2)}
                 </pre>
               </div>
             </div>

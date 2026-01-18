@@ -35,11 +35,31 @@ export function Sources({ initialState, navigate }: SourcesProps) {
     setSaveError('');
 
     try {
-      // 1. EXTRACT HANDLE: Convert URL to handle
-      const ytInput = sources.youtubeUrl || '';
-      const handle = ytInput.includes('@') ? ytInput.split('@')[1].split('/')[0] : ytInput;
+      // 1. EXTRACT HANDLE: Robust conversion for multiple URL types
+      const ytInput = (sources.youtubeUrl || '').trim();
+      let handle = '';
 
-      if (!handle && ytInput.trim().length > 0) throw new Error('Valid YouTube handle required');
+      if (ytInput.includes('@')) {
+        // Case: https://youtube.com/@mkbhd
+        handle = ytInput.split('@')[1].split('/')[0];
+      } else if (ytInput.includes('/user/')) {
+        // Case: https://youtube.com/user/marquesbrownlee
+        handle = ytInput.split('/user/')[1].split('`/')[0];
+      } else if (ytInput.includes('/channel/')) {
+        // Case: https://youtube.com/channel/UC...
+        handle = ytInput.split('/channel/')[1].split('/')[0];
+      } else if (ytInput.includes('/c/')) {
+        // Case: https://youtube.com/c/mkbhd
+        handle = ytInput.split('/c/')[1].split('/')[0];
+      } else {
+        // Case: Just the handle "mkbhd" or "uoft"
+        handle = ytInput.replace('https://', '').replace('http://', '').replace('www.youtube.com/', '');
+      }
+
+      // Clean up any trailing slashes or query parameters
+      handle = handle.split('?')[0].split('/')[0];
+
+      if (!handle && ytInput.length > 0) throw new Error('Could not extract a valid YouTube handle');
 
       // 2. TRIGGER SCRAPER: Call the FastAPI main.py bridge if YouTube is provided
       let pythonScrapedData = null;
