@@ -55,12 +55,33 @@ export function Home({ navigate }: HomeProps) {
       <div className="relative flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-3xl">
           <div className="text-center mb-16 space-y-6">
-            <h1 className="text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-300 to-cyan-400 animate-pulse" style={{
+            <h1 className="text-7xl font-black tracking-widest" style={{
               fontFamily: '"Bebas Neue", "Impact", sans-serif',
-              textShadow: '0 0 40px rgba(139, 92, 246, 0.5)',
-              animationDuration: '3s'
+              letterSpacing: '0.15em'
             }}>
-              IDENTIFY.AI
+              <span style={{
+                color: '#00ffff',
+                textShadow: `
+                  0 0 10px #00ffff,
+                  0 0 20px #00ffff,
+                  0 0 40px #00ffff,
+                  0 0 80px #00ffff,
+                  0 0 120px rgba(0, 255, 255, 0.5)
+                `,
+                animation: 'glowPulse 2s ease-in-out infinite'
+              }}>IDENTI</span>
+              <span style={{
+                color: '#ff00ff',
+                textShadow: `
+                  0 0 10px #ff00ff,
+                  0 0 20px #ff00ff,
+                  0 0 40px #ff00ff,
+                  0 0 80px #ff00ff,
+                  0 0 120px rgba(255, 0, 255, 0.5)
+                `,
+                animation: 'glowPulse 2s ease-in-out infinite',
+                animationDelay: '0.5s'
+              }}>VIBE</span>
             </h1>
             <p className="text-xl text-violet-200 tracking-wide" style={{
               fontFamily: '"Courier New", monospace',
@@ -128,6 +149,16 @@ export function Home({ navigate }: HomeProps) {
         @keyframes gridShift {
           0% { transform: translateY(0); }
           100% { transform: translateY(50px); }
+        }
+        @keyframes glowPulse {
+          0%, 100% {
+            filter: brightness(1);
+            opacity: 1;
+          }
+          50% {
+            filter: brightness(1.3);
+            opacity: 0.9;
+          }
         }
       `}</style>
     </div>
