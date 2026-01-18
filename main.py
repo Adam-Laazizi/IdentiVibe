@@ -23,6 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def home():
+    return {"status": "Backend is running", "message": "Welcome to Identivibe API"}
+
 # Optional: Serve the 'Identify' folder so the website can load the generated image file
 # This allows you to access the image via http://localhost:8000/static/identivibe_mascot.png
 if not os.path.exists("Identify/output"):
