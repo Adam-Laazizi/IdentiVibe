@@ -61,11 +61,11 @@ export function Home({ navigate }: HomeProps) {
               letterSpacing: '0.15em'
             }}>
               <span style={{
-                background: 'linear-gradient(135deg, #a78bfa 0%, #c084fc 100%)',
+                background: 'linear-gradient(135deg, #b64306ff 0%, #cb6607ff 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                textShadow: '0 0 20px rgba(167, 139, 250, 0.3)'
+                textShadow: '0 0 20px rgba(87, 25, 4, 0.3)'
               }}>
                 IDENTI
               </span>
