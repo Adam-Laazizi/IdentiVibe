@@ -58,7 +58,7 @@ export function Sources({ initialState, navigate }: SourcesProps) {
         },
       });
 
-      navigate('/results', { query, sources });
+      navigate('/loading', { query, sources });
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Failed to save search');
     } finally {
