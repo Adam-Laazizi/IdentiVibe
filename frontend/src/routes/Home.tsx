@@ -60,24 +60,20 @@ export function Home({ navigate }: HomeProps) {
               letterSpacing: '0.15em'
             }}>
               <span style={{
-                color: '#00ffff',
+                color: '#5eead4',
                 textShadow: `
-                  0 0 10px #00ffff,
-                  0 0 20px #00ffff,
-                  0 0 40px #00ffff,
-                  0 0 80px #00ffff,
-                  0 0 120px rgba(0, 255, 255, 0.5)
+                  0 0 8px rgba(94, 234, 212, 0.6),
+                  0 0 20px rgba(94, 234, 212, 0.4),
+                  0 0 40px rgba(94, 234, 212, 0.2)
                 `,
                 animation: 'glowPulse 2s ease-in-out infinite'
               }}>IDENTI</span>
               <span style={{
-                color: '#ff00ff',
+                color: '#c084fc',
                 textShadow: `
-                  0 0 10px #ff00ff,
-                  0 0 20px #ff00ff,
-                  0 0 40px #ff00ff,
-                  0 0 80px #ff00ff,
-                  0 0 120px rgba(255, 0, 255, 0.5)
+                  0 0 8px rgba(192, 132, 252, 0.6),
+                  0 0 20px rgba(192, 132, 252, 0.4),
+                  0 0 40px rgba(192, 132, 252, 0.2)
                 `,
                 animation: 'glowPulse 2s ease-in-out infinite',
                 animationDelay: '0.5s'

@@ -8,7 +8,7 @@ import History from './routes/History';
 import type { ResolveSourcesResponse } from './types/sources';
 import './index.css';
 
-type Route = 'home' | 'sources' | 'loading' | 'results' | 'history' | 'loading-test';
+type Route = 'home' | 'sources' | 'loading' | 'results' | 'history';
 
 function useRouter() {
   const [route, setRoute] = useState<Route>('home');

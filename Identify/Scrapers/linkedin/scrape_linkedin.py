@@ -47,7 +47,29 @@ class LinkedInScraper:
         self.api_key = api_key
         self.profile_or_username = profile_or_username
 
+    def get_payload(self) -> dict:
+        """Returns standardized payload matching other scrapers."""
+        urls = [_normalize_profile_input(self.profile_or_username)]
+        raw = _run_for_urls(urls, api_key=self.api_key)
+
+        # Standardize to match other scrapers: {"users": [...]}
+        users = []
+        for item in raw:
+            users.append({
+                "username": item.get("name", ""),
+                "profile_url": item.get("profile_url", ""),
+                "profile_data": item.get("profile_data", {}),
+                "posts": item.get("posts", []),
+            })
+
+        return {
+            "platform": "linkedin",
+            "seed_profile": self.profile_or_username,
+            "users": users,
+        }
+
     def git_payload(self):
+        """Deprecated: use get_payload() instead."""
         urls = [_normalize_profile_input(self.profile_or_username)]
         return _run_for_urls(urls, api_key=self.api_key)
 

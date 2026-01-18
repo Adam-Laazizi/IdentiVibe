@@ -3,7 +3,7 @@ import type { ResolveSourcesResponse } from '../types/sources';
 
 type LoadingProps = {
   initialState: ResolveSourcesResponse | null;
-  navigate: (path: string, state?: unknown) => void;
+  navigate: (path: string, state?: ResolveSourcesResponse) => void;
 };
 
 const loadingMessages = [

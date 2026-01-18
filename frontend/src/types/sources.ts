@@ -8,4 +8,5 @@ export type Sources = {
 export type ResolveSourcesResponse = {
   query: string;
   sources: Sources;
+  scrapeResult?: unknown;
 };

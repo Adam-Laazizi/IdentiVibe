@@ -1,0 +1,10 @@
+{
+  "apify_token": "apify_api_aOJZQDB9twaZ1b48USINZzWJIq6NcJ185CWp",
+  "posts": 10,
+  "comments": 5,
+  "sample": 5,
+  "user_posts": 5,
+  "max_comments_per_user": 10,
+  "cache_dir": "./cache"
+}
+
