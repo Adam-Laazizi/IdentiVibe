@@ -43,22 +43,6 @@ export function Results({ initialState, navigate }: ResultsProps) {
           ANALYSIS COMPLETE
         </h1>
 
-        <div className="relative group mb-8">
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
-          <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6">
-            <h2 className="text-2xl font-bold text-violet-100 mb-4 tracking-wide" style={{
-              fontFamily: '"Orbitron", sans-serif'
-            }}>
-              QUERY & SOURCES
-            </h2>
-            <div className="bg-slate-950/80 backdrop-blur-sm border border-cyan-500/30 rounded-xl p-4 overflow-auto">
-              <pre className="text-sm text-cyan-100" style={{
-                fontFamily: '"Fira Code", "Courier New", monospace'
-              }}>{JSON.stringify(initialState, null, 2)}</pre>
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-6">
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
@@ -97,6 +81,22 @@ export function Results({ initialState, navigate }: ResultsProps) {
               </div>
             </div>
           </div>
+
+          <div className="relative group mb-8">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-cyan-600 rounded-2xl blur opacity-30 group-hover:opacity-50 transition duration-500"></div>
+          <div className="relative bg-slate-900/80 backdrop-blur-sm border border-violet-500/30 rounded-2xl p-6">
+            <h2 className="text-2xl font-bold text-violet-100 mb-4 tracking-wide" style={{
+              fontFamily: '"Orbitron", sans-serif'
+            }}>
+              QUERY & SOURCES
+            </h2>
+            <div className="bg-slate-950/80 backdrop-blur-sm border border-cyan-500/30 rounded-xl p-4 overflow-auto">
+              <pre className="text-sm text-cyan-100" style={{
+                fontFamily: '"Fira Code", "Courier New", monospace'
+              }}>{JSON.stringify(initialState, null, 2)}</pre>
+            </div>
+          </div>
+        </div>
 
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-600 to-violet-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
