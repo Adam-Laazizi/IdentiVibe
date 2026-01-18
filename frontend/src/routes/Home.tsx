@@ -70,12 +70,13 @@ export function Home({ navigate }: HomeProps) {
                 IDENTI
               </span>
               <span style={{
-                background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                textShadow: '0 0 30px rgba(6, 182, 212, 0.6)',
-                fontWeight: 'bolder'
+                textShadow: '0 0 50px rgba(251, 191, 36, 0.8), 0 0 100px rgba(245, 158, 11, 0.6)',
+                fontWeight: 'bolder',
+                filter: 'drop-shadow(0 0 20px rgba(251, 191, 36, 0.6))'
               }}>
                 VIBE
               </span>
