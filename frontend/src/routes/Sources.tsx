@@ -61,7 +61,7 @@ export function Sources({ initialState, navigate }: SourcesProps) {
       let pythonScrapedData = null;
       if (handle) {
         console.log(`Requesting Python Scrape for: @${handle}`);
-        const scraperResponse = await fetch(`http://localhost:8000/scrape/youtube/${handle}`);
+        const scraperResponse = await fetch(`https://identivibe.onrender.com/scrape/youtube/${handle}`);
 
         if (!scraperResponse.ok) throw new Error('Python backend (main.py) is not running or returned an error');
         pythonScrapedData = await scraperResponse.json();
