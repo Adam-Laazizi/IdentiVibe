@@ -55,12 +55,37 @@ export function Home({ navigate }: HomeProps) {
       <div className="relative flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-3xl">
           <div className="text-center mb-16 space-y-6">
-            <h1 className="text-7xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-300 to-cyan-400 animate-pulse" style={{
+            <h1 className="text-7xl font-black animate-pulse" style={{
               fontFamily: '"Bebas Neue", "Impact", sans-serif',
-              textShadow: '0 0 40px rgba(139, 92, 246, 0.5)',
-              animationDuration: '3s'
+              animationDuration: '3s',
+              letterSpacing: '0.15em'
             }}>
-              IDENTIFY.AI
+              <span
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow: '0 0 24px rgba(99, 102, 241, 0.35)',
+              filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.45))'
+            }}
+          >
+            IDENTI
+          </span>
+          <span
+            style={{
+              background: 'linear-gradient(135deg, #facc15 0%, #22d3ee 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              textShadow:
+                '0 0 40px rgba(250, 204, 21, 0.85), 0 0 90px rgba(34, 211, 238, 0.65)',
+              fontWeight: 'bolder',
+              filter: 'drop-shadow(0 0 22px rgba(34, 211, 238, 0.7))'
+            }}
+          >
+            VIBE
+          </span>
             </h1>
             <p className="text-xl text-violet-200 tracking-wide" style={{
               fontFamily: '"Courier New", monospace',

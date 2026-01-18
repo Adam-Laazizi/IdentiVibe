@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Home } from './routes/Home';
 import { Sources } from './routes/Sources';
+import { Loading } from './routes/Loading';
 import { Results } from './routes/Results';
 import History from './routes/History';
 import type { ResolveSourcesResponse } from './types/sources';
 import './index.css';
 
-type Route = 'home' | 'sources' | 'results' | 'history';
+type Route = 'home' | 'sources' | 'loading' | 'results' | 'history';
 
 function useRouter() {
   const [route, setRoute] = useState<Route>('home');
@@ -17,6 +18,7 @@ function useRouter() {
     const handleRoute = () => {
       const hash = window.location.hash.slice(1);
       if (hash === '/sources') setRoute('sources');
+      else if (hash === '/loading') setRoute('loading');
       else if (hash === '/results') setRoute('results');
       else if (hash === '/history') setRoute('history');
       else setRoute('home');
@@ -42,6 +44,10 @@ function App() {
 
   if (route === 'sources') {
     return <Sources initialState={state} navigate={navigate} />;
+  }
+
+  if (route === 'loading') {
+    return <Loading initialState={state} navigate={navigate} />;
   }
 
   if (route === 'results') {

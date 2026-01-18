@@ -1,12 +1,9 @@
 """
 Instagram Scraper - Main entry point.
 
-Usage:
-    from Identify.Scrapers.instagram.instagram_scraper import InstagramScraper
-
-    scraper = InstagramScraper(target="uoft")
+Usage (Programmatic):
+    scraper = InstagramScraper(apify_token="TOKEN", target="uoft", settings={"posts": 5, "sample": 10})
     payload = scraper.get_payload()
-    # Returns: {"seed_handle": "uoft", "users": [...]}
 """
 
 import json
@@ -14,19 +11,14 @@ import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict
-import sys
-import os
+from urllib.parse import urlparse
 
-# 1. Get the path of the 'Scrapers' folder (which is the parent of the current file)
-# This handles the case where you are in root/Identify/Scrapers/Youtube/
-scrapers_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# 2. Add 'Scrapers' to the system path so Python can find SocialScraper.py
-if scrapers_dir not in sys.path:
-    sys.path.insert(0, scrapers_dir)
-
-# 3. Import with the CORRECT CASE (Capital S)
-from socialScraper import SocialScraper
+try:
+    from Identify.Scrapers.socialScraper import SocialScraper
+except ImportError:
+    # Allow running standalone from the instagram directory
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from socialScraper import SocialScraper
 
 from connectors.instagram.apify_client import ApifyClient, ApifyError
 from connectors.instagram.bundler import (
@@ -38,82 +30,117 @@ from connectors.instagram.bundler import (
 
 logger = logging.getLogger(__name__)
 
-# InstagramScraper is now a subclass of SocialScraper and sister to YouTubeScraper
 class InstagramScraper(SocialScraper):
     """Handles all interactions with Instagram via Apify."""
 
-    def __init__(self, target: str, payload_path: str = "payload.json"):
-        """
-        Standardized constructor matching sister classes.
-        :param target: Instagram handle of the seed account (e.g., "uoft")
-        :param payload_path: Path to configuration settings
-        """
-        self.target = target
-        self.payload_path = payload_path
+    def __init__(self, apify_token: str, target: str, settings: Dict[str, Any] = None):
+        if not apify_token:
+            raise ValueError("An Apify API token must be provided to initialize the scraper.")
 
-    def _load_payload(self) -> Dict[str, Any]:
-        """Load configuration from payload file."""
-        path = Path(self.payload_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Payload file not found: {self.payload_path}")
+        self.apify_token = apify_token
+        self.target = self._normalize_handle(target)
 
-        with open(path) as f:
-            return json.load(f)
+        # Default settings are used if no settings dict is provided.
+        # These are easily overridden during website integration.
+        self.settings = settings or {
+            "posts": 10,
+            "comments": 150,
+            "sample": 250,
+            "user_posts": 10,
+            "max_comments_per_user": 50,
+            "cache_dir": "./cache"
+        }
+
+    @staticmethod
+    def _normalize_handle(target: str) -> str:
+        """Normalize and validate an Instagram handle or profile URL."""
+        if not isinstance(target, str):
+            raise ValueError("Seed handle must be a string.")
+
+        handle = target.strip()
+        if not handle:
+            return ""
+
+        # Handle full URL inputs
+        if handle.startswith("http://") or handle.startswith("https://"):
+            parsed = urlparse(handle)
+            if parsed.netloc not in {"instagram.com", "www.instagram.com"}:
+                raise ValueError("Handle must be a valid Instagram username or profile URL.")
+
+            path = parsed.path.strip("/")
+            if not path:
+                raise ValueError("Instagram profile URL missing username.")
+            handle = path.split("/", 1)[0]
+
+        # Clean leading @ and whitespace
+        handle = handle.lstrip("@").strip()
+        return handle
 
     def get_payload(self) -> dict:
         """
-        Implementation of the SocialScraper interface.
-        Scrapes Instagram data for commenters on the seed account's posts.
-        :return: Dictionary with structure: {"seed_handle": "...", "users": [...]}
+        Scrape Instagram data based on the initialized settings.
+
+        Returns:
+            A dictionary containing the seed handle and the bundled user data.
         """
-        # Load config
-        config = self._load_payload()
+        if not self.target:
+            return {"seed_handle": "", "users": []}
 
-        apify_token = config.get("apify_token")
-        posts_limit = config.get("posts", 10)
-        comments_limit = config.get("comments", 150)
-        sample_size = config.get("sample", 250)
-        user_posts_limit = config.get("user_posts", 10)
-        max_comments_per_user = config.get("max_comments_per_user", 50)
-        cache_dir = config.get("cache_dir", "./cache")
+        # Extract operational limits from settings
+        posts_limit = self.settings.get("posts", 10)
+        comments_limit = self.settings.get("comments", 150)
+        sample_size = self.settings.get("sample", 250)
+        user_posts_limit = self.settings.get("user_posts", 10)
+        max_comments_per_user = self.settings.get("max_comments_per_user", 50)
+        cache_dir = self.settings.get("cache_dir", "./cache")
 
-        logger.info(f"Scraping Instagram for seed: @{self.target}")
+        logger.info(f"Starting scrape for @{self.target} with sample_size={sample_size}")
 
-        # Initialize client
-        client = ApifyClient(token=apify_token, cache_dir=cache_dir)
+        # Initialize the Apify communication client
+        client = ApifyClient(token=self.apify_token, cache_dir=cache_dir)
 
         # Step 1: Scrape seed account posts
-        logger.info(f"Step 1: Scraping posts from @{self.target}...")
+        logger.info(f"Step 1: Scraping {posts_limit} posts from @{self.target}...")
         seed_posts = client.scrape_profile_posts(
             username=self.target,
             results_limit=posts_limit,
         )
 
         if not seed_posts:
-            raise ApifyError(f"No posts found for seed account @{self.target}")
+            logger.warning(f"No posts found for handle: @{self.target}")
+            return {"seed_handle": self.target, "users": []}
 
         post_urls = extract_post_urls(seed_posts)
+        if not post_urls:
+            raise ApifyError("No post URLs could be extracted from the seed account posts.")
 
-        # Step 2: Scrape comments from seed posts
+        # Step 2: Scrape comments from those posts
+        logger.info(f"Step 2: Scraping {comments_limit} total comments...")
         all_comments = client.scrape_post_comments(
             post_urls=post_urls,
             results_limit=comments_limit,
         )
 
+        if not all_comments:
+            raise ApifyError("No comments were found on the targeted posts.")
+
         # Step 3: Bundle comments by user
+        logger.info("Step 3: Bundling and deduplicating user comments...")
         user_comments = bundle_seed_comments(
             comments=all_comments,
             max_comments_per_user=max_comments_per_user,
             deduplicate=True,
         )
 
-        # Step 4: Sample usernames
+        # Step 4: Sample the commenters based on the provided sample size
+        logger.info(f"Step 4: Sampling up to {sample_size} unique users...")
         sampled_users = sample_usernames(
             user_comments=user_comments,
             sample_size=sample_size,
         )
 
-        # Step 5: Enrich with captions
+        # Step 5: Enrich the sampled users with their own captions/post history
+        logger.info(f"Step 5: Enriching {len(sampled_users)} users with personal captions...")
         bundles, skipped = enrich_with_captions(
             client=client,
             sampled_usernames=sampled_users,
@@ -121,7 +148,7 @@ class InstagramScraper(SocialScraper):
             user_posts_limit=user_posts_limit,
         )
 
-        # Format output to match the standardized 'Identity Payload'
+        # Final formatting for consumption by GeminiEnricher
         users = [
             {
                 "username": b["username"],
@@ -131,26 +158,37 @@ class InstagramScraper(SocialScraper):
             for b in bundles
         ]
 
+        logger.info(f"Scrape complete: {len(users)} user bundles created ({skipped} users skipped).")
         return {"seed_handle": self.target, "users": users}
 
-
+# Support for local execution/debugging
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)-8s | %(message)s"
+    )
 
     if len(sys.argv) < 2:
-        print("Usage: python instagram_scraper.py <seed_handle>")
+        print("Usage: python instagram_scraper.py <handle>")
         sys.exit(1)
 
-    handle = sys.argv[1]
-
+    # For local tests, look for payload.json in the project root
     try:
-        # Initializing with target handle
-        scraper = InstagramScraper(target=handle)
+        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        with open(project_root / "payload.json") as f:
+            local_config = json.load(f)
+
+        token = local_config.get("apify_token")
+        target_handle = sys.argv[1]
+
+        # Instantiate with the new pattern (like YouTubeScraper)
+        scraper = InstagramScraper(apify_token=token, target=target_handle, settings=local_config)
         result = scraper.get_payload()
 
-        with open("instagram_bundles.json", "w", encoding="utf-8") as f:
+        # Write results to a file for inspection
+        with open("instagram_output.json", "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
-        print(f"Success: {len(result['users'])} user bundles created")
+        print(f"Success! Generated {len(result['users'])} user profiles.")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error during execution: {e}")
